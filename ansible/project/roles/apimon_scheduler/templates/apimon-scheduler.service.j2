@@ -1,0 +1,33 @@
+[Unit]
+Description=Apimon Scheduler container
+Wants=syslog.service
+
+[Service]
+Type=simple
+Restart=always
+TimeoutSec=300s
+User={{ scheduler_os_user }}
+Group={{ scheduler_os_group }}
+EnvironmentFile=/etc/apimon/env_scheduler
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} pull ${SCHEDULER_IMAGE}
+ExecStartPre=-{{ container_runtime }} rm {{ scheduler_container_name }}
+
+ExecStart={{ container_runtime }} run \
+  --name "{{ scheduler_container_name }}" \
+  --network host \
+{% if container_command == 'podman' %}
+  --log-opt=path=/dev/null \
+{% endif %}
+  -v {{ scheduler_config_dir }}:/etc/apimon:ro \
+  -v apimon_scheduler_lib:/var/lib/apimon:rw,Z \
+  ${SCHEDULER_IMAGE} scheduler --config {{ scheduler_config_dir}}/{{ scheduler_config_file_name }}
+
+ExecReload={{ container_runtime }} kill -s SIGHUP {{ scheduler_container_name }}
+
+ExecStop={{ container_runtime }} stop -t 10 {{ scheduler_container_name }}
+
+[Install]
+WantedBy=multi-user.target
+

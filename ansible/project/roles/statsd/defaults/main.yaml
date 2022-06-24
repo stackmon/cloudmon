@@ -1,0 +1,26 @@
+# comment to trigger test job
+statsd_image: "quay.io/opentelekomcloud/statsd:v0.9.0"
+statsd_graphite_host: "127.0.0.1"
+statsd_graphite_port: 2003
+statsd_graphite_port_pickle: 2004
+statsd_graphite_protocol: "pickle"
+statsd_legacy_namespace: false
+statsd_server: "./servers/udp"
+statsd_delete_timers: true
+statsd_delete_gauges: false
+statsd_delete_counters: true
+statsd_delete_sets: false
+statsd_config_location: /etc/statsd
+
+container_command: "podman"
+container_runtime: "/usr/bin/{{ container_command }}"
+statsd_service_name: "statsd"
+statsd_service_unit: "statsd.service"
+
+distro_lookup_path:
+  - "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.{{ ansible_facts.architecture }}.yaml"
+  - "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.yaml"
+  - "{{ ansible_facts.distribution }}.{{ ansible_facts.architecture }}.yaml"
+  - "{{ ansible_facts.distribution }}.yaml"
+  - "{{ ansible_facts.os_family }}.yaml"
+  - "default.yaml"

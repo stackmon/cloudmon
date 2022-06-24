@@ -1,0 +1,6 @@
+---
+ansible_python_interpreter: "/usr/bin/env python3"
+packages:
+  - docker.io
+  - firewalld
+container_command: docker

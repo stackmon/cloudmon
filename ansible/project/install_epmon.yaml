@@ -1,0 +1,12 @@
+---
+# Playbook to install epmon
+#
+
+- name: Provision epmon
+  hosts: epmon
+  become: true
+  gather_facts: true
+  serial: 1
+  roles:
+    - opentelekomcloud.apimon.epmon
+  tags: epmon

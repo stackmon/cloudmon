@@ -1,0 +1,27 @@
+[Unit]
+Description=StatsD container
+Wants=syslog.service
+
+[Service]
+Type=simple
+Restart=always
+TimeoutSec=30s
+
+ExecStartPre=-{{ container_runtime }} rm "statsd"
+
+ExecStart={{ container_runtime }} run \
+  --network host \
+  --name "statsd" \
+{% if container_command == 'podman' %}
+  --log-opt=path=/dev/null \
+{% endif %}
+  -v {{ statsd_config_location }}/config.js:/usr/src/app/config.js:ro,Z \
+  {{ statsd_image }}
+
+ExecReload=-{{ container_runtime }} stop "statsd"
+ExecReload=-{{ container_runtime }} rm "statsd"
+
+ExecStop={{ container_runtime }} stop -t 10 "statsd"
+
+[Install]
+WantedBy=multi-user.target

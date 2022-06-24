@@ -1,0 +1,29 @@
+graphite_sync_user: graphite
+graphite_sync_group: graphite
+
+graphite_config_location: "/etc/graphite"
+graphite_retentions_carbon: "60:90d"
+graphite_retentions_stats: "10s:1d,1m:40d,10m:3y"
+graphite_retentions_default: "60s:1d,5m:30d,1h:1y"
+
+graphite_relay: false
+graphite_relay_port_line: 2013
+graphite_relay_port_pickle: 2014
+graphite_relay_destination_port: 2004
+graphite_relay_replication_factor: 1
+graphite_relay_destinations: "127.0.0.1:2004"
+graphite_relay_normalize_tag: true
+
+graphite_aggregator_replication_factor: 1
+graphite_aggregate_destinations: "127.0.0.1:2004"
+
+graphite_carbon_enable_tagging: false
+
+# graphite_cluster_servers: "127.0.0.1:8080"
+
+graphite_image: "quay.io/opentelekomcloud/graphite-statsd:latest"
+
+container_command: "podman"
+container_runtime: "/usr/bin/{{ container_command }}"
+
+carbonapi_enable: true

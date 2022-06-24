@@ -1,0 +1,6 @@
+---
+- hosts: cloudmon-lb-backend-nodes
+  tasks:
+    - name: Greeting
+      ansible.builtin.debug:
+        msg: "Hello World!"

@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = cloudmon
+
+[report]
+ignore_errors = True

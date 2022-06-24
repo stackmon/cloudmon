@@ -1,0 +1,6 @@
+- name: Restart graphite
+  ansible.builtin.systemd:
+    name: "graphite"
+    enabled: true
+    state: "restarted"
+    daemon_reload: true

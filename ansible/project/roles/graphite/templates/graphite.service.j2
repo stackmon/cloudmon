@@ -1,0 +1,36 @@
+[Unit]
+Description=Carbon Service
+After=syslog.target network.target
+
+[Service]
+Restart=always
+ExecStartPre=-{{ container_runtime }} kill graphite
+ExecStartPre=-{{ container_runtime }} rm graphite
+
+ExecStart={{ container_runtime }} run \
+    --name graphite \
+    --network host \
+    --env-file /etc/graphite/env \
+{% if container_command == 'podman' %}
+    --log-opt=path=/dev/null \
+{% endif %}
+{% if graphite_cert is defined %}
+    -v /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.pem:/etc/ssl/{{
+    inventory_hostname }}/{{ graphite_cert }}.pem:ro,z \
+    -v /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.crt:/etc/ssl/{{
+    inventory_hostname }}/{{ graphite_cert }}.crt:ro,z \
+{% endif %}
+    -v /etc/graphite/carbon.conf:/opt/graphite/conf/carbon.conf:ro \
+    -v /etc/graphite/go-carbon.conf:/opt/graphite/conf/go-carbon.conf:ro \
+    -v /etc/graphite/relay-rules.conf:/opt/graphite/conf/relay-rules.conf:ro \
+    -v /etc/graphite/storage-aggregation.conf:/opt/graphite/conf/storage-aggregation.conf:ro \
+    -v /etc/graphite/storage-schemas.conf:/opt/graphite/conf/storage-schemas.conf:ro \
+    -v /etc/graphite/statsd.js:/opt/statsd/config/udp.js:ro \
+    -v /etc/graphite/graphite-statsd.conf:/etc/nginx/sites-enabled/graphite-statsd.conf:ro \
+    -v /opt/graphite/storage:/opt/graphite/storage:rw,z \
+    -v /var/log/graphite:/var/log:rw,z \
+    --tmpfs /tmp:rw,size=2g \
+    {{ graphite_image }}
+
+[Install]
+WantedBy=multi-user.target

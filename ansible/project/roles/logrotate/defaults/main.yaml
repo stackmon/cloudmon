@@ -1,0 +1,8 @@
+logrotate_compress: yes
+logrotate_copytruncate: yes
+logrotate_delaycompress: yes
+logrotate_missingok: yes
+logrotate_rotate: 7
+logrotate_frequency: daily
+logrotate_size: None
+logrotate_notifempty: yes

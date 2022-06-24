@@ -1,0 +1,110 @@
+---
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- name: Create graphite sync group
+  become: yes
+  ansible.builtin.group:
+    name: "{{ graphite_sync_group }}"
+    state: present
+  when: "graphite_sync_group is defined"
+
+- name: Create graphite sync user
+  become: true
+  ansible.builtin.user:
+    name: "{{ graphite_sync_user }}"
+    group: "{{ graphite_sync_group }}"
+    state: present
+  when:
+    - "graphite_sync_group is defined"
+    - "graphite_sync_user is defined"
+
+- name: Add graphite user authorized key
+  ansible.posix.authorized_key:
+    user: "{{ graphite_sync_user }}"
+    key: "{{ graphite_public_key }}"
+    state: "present"
+  when:
+    - "graphite_public_key is defined"
+    - "graphite_sync_user is defined"
+
+- name: Write private key when not root
+  ansible.builtin.copy:
+    content: "{{ graphite_private_key }}"
+    dest: "/root/.ssh/id_rsa.graphite"
+    mode: "0400"
+  when:
+    - "graphite_private_key is defined"
+
+- name: Ensure directories exist
+  become: true
+  ansible.builtin.file:
+    state: "directory"
+    path: "{{ item }}"
+    mode: "0755"
+  loop:
+    - "{{ graphite_config_location }}"
+    - "/opt/graphite/storage"
+    - "/var/log/graphite"
+
+- name: Write config files
+  become: true
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ graphite_config_location }}//{{ item }}"
+    mode: "0644"
+  loop:
+    - "storage-aggregation.conf"
+    - "storage-schemas.conf"
+    - "carbon.conf"
+    - "go-carbon.conf"
+    - "relay-rules.conf"
+    - "graphite-statsd.conf"
+    - "statsd.js"
+    - "env"
+  notify:
+    - Restart graphite
+
+- name: Write systemd unit file
+  become: true
+  ansible.builtin.template:
+    src: "graphite.service.j2"
+    dest: "/etc/systemd/system/graphite.service"
+  notify:
+    - Restart graphite
+
+# Removes files not updated for ~9 months, and clears out empty directories
+- name: Run periodic cleanup
+  become: true
+  ansible.builtin.cron:
+    name: "Graphite cleanup"
+    minute: "0"
+    hour: "2"
+    job: >
+        bash -c 'echo "--- $(date) ---";
+        find /opt/graphite/storage/whisper -type f -mtime +270 -name "*.wsp" -delete -print;
+        find /opt/graphite/storage/whisper -depth -type d -empty -delete -print'
+        >> /var/log/graphite-cleanup.log 2>&1
+
+- name: Rotate cleanup logs
+  include_role:
+    name: logrotate
+  vars:
+    logrotate_file_name: '/var/log/graphite-cleanup.log'

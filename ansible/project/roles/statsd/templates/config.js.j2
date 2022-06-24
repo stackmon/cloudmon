@@ -1,0 +1,19 @@
+{
+   "graphiteHost": "{{ statsd_graphite_host }}",
+   "graphitePort": {{ statsd_graphite_port }},
+   "graphitePicklePort": {{ statsd_graphite_port_pickle }},
+   "graphiteProtocol": "{{ statsd_graphite_protocol }}",
+   "graphite": {
+     "legacyNamespace": {{ statsd_legacy_namespace | to_json }},
+   },
+   "flushInterval": 10000,
+   "servers": [{
+     "server": "{{ statsd_server }}",
+     "address": "0.0.0.0",
+     "port": 8125
+   }],
+   deleteTimers: {{ statsd_delete_timers | to_json }},
+   deleteGauges: {{ statsd_delete_gauges | to_json }},
+   deleteCounters: {{ statsd_delete_counters | to_json }},
+   deleteSets: {{ statsd_delete_sets | to_json }},
+}

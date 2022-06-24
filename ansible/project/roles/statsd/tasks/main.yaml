@@ -1,0 +1,34 @@
+- name: Include OS-specific variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - 'vars'
+
+- name: Install container runtime
+  ansible.builtin.package:
+    name: "{{ distro_packages }}"
+    state: present
+  # If we are on CoreOS we can't use the module and podman already exists
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+
+- name: Create StatsD directory
+  ansible.builtin.file:
+    path: "{{ statsd_config_location }}"
+    state: "directory"
+    recurse: true
+
+- name: Write StatsD config
+  ansible.builtin.template:
+    src: "config.js.j2"
+    dest: "{{ statsd_config_location }}/config.js"
+  notify:
+    - Restart StatsD
+
+- name: Write StatsD Systemd unit file
+  ansible.builtin.template:
+    src: "statsd.service.j2"
+    dest: "/etc/systemd/system/{{ statsd_service_unit }}"
+  notify:
+    - Restart StatsD

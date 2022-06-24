@@ -1,0 +1,12 @@
+---
+# Playbook to install Executor
+#
+
+- name: Provision Executor
+  hosts: "{{ executors_group_name }}"
+  become: true
+  gather_facts: true
+  serial: 1
+  roles:
+    - opentelekomcloud.apimon.executor
+  tags: executor
