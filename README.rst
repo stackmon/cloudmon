@@ -63,7 +63,7 @@ to be used, which environments need to be monitored and with which settings.
      production:
        env:
          OS_CLOUD: production
-       zones:
+       monitoring_zones:
          internal:
            clouds:
              - name: production
@@ -84,7 +84,7 @@ to be used, which environments need to be monitored and with which settings.
        scheduler_image: "quay.io/opentelekomcloud/apimon:change_31_latest"
        executor_image: "quay.io/opentelekomcloud/apimon:change_31_latest"
        epmon_image: "quay.io/opentelekomcloud/apimon:change_31_latest"
-       projects:
+       tests_projects:
          - name: apimon
            repo_url: https://github.com/opentelekomcloud-infra/apimon-tests
            repo_ref: master
@@ -101,13 +101,13 @@ to be used, which environments need to be monitored and with which settings.
      # Mapping of environments to test projects
      # Regular apimon project in env ext
      - env: production
-       zone: internal
+       monitoring_zone: internal
        plugins:
          - name: apimon
            schedulers_inventory_group_name: schedulers_int
            executors_inventory_group_name: executors_int
            epmons_inventory_group_name: epmons_int
-           project: apimon
+           tests_project: apimon
            tasks:
              - scenario1_token.yaml
 
@@ -147,4 +147,6 @@ possible to use it from the local checkout and install it locally:
 
 - python3 setup.py develop
 
-- tox -epy39 --notest && souce .tox(py39/bin/activate
+or
+
+- tox -epy39 --notest && source .tox/py39/bin/activate

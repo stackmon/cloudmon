@@ -1,0 +1,11 @@
+---
+# Playbook to stop ApiMon Executors
+#
+- name: "Stopping ApiMon Executors"
+  hosts: "{{ executors_group_name }}:!disabled"
+  become: true
+  tasks:
+    - name: Stop apimon-executor
+      ansible.builtin.service:
+        name: "apimon-executor"
+        state: "stopped"

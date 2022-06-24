@@ -6,6 +6,9 @@ import yaml
 import ansible_runner
 
 
+COMMAND_CHOICES = ["configure", "stop", "start"]
+
+
 class ApiMon:
     def __init__(self):
         self.statsd_host = None
@@ -54,6 +57,10 @@ class CloudMon:
     def create_parser(self):
         parser = argparse.ArgumentParser(description="CloudMon Controller")
         parser.add_argument(
+            "command", help="Execution command",
+            choices=COMMAND_CHOICES
+        )
+        parser.add_argument(
             "--config",
             dest="config",
             default="config.yaml",
@@ -78,7 +85,8 @@ class CloudMon:
 
     def configure_apimon_schedulers(self, apimon_config):
         logging.info(
-            "Configuring ApiMon Scheduler in zone %s", apimon_config.zone
+            "Configuring ApiMon Scheduler in monitoring zone %s",
+            apimon_config.zone,
         )
         schedulers = self.inventory[apimon_config.schedulers_group_name][
             "hosts"
@@ -132,6 +140,42 @@ class CloudMon:
         if r.rc != 0:
             raise RuntimeError("Error configuring ApiMon Schedulers")
 
+    def stop_apimon_schedulers(self, apimon_config):
+        logging.info(
+            "Stopping ApiMon Scheduler in monitoring zone %s",
+            apimon_config.zone,
+        )
+        extravars = dict(
+            schedulers_group_name=apimon_config.schedulers_group_name,
+        )
+        r = ansible_runner.run(
+            private_data_dir=self.args.private_data_dir,
+            playbook="stop_schedulers.yaml",
+            inventory=self.args.inventory,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error stopping ApiMon Schedulers")
+
+    def start_apimon_schedulers(self, apimon_config):
+        logging.info(
+            "Starting ApiMon Scheduler in monitoring zone %s",
+            apimon_config.zone,
+        )
+        extravars = dict(
+            schedulers_group_name=apimon_config.schedulers_group_name,
+        )
+        r = ansible_runner.run(
+            private_data_dir=self.args.private_data_dir,
+            playbook="start_schedulers.yaml",
+            inventory=self.args.inventory,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error starting ApiMon Schedulers")
+
     def configure_apimon_executors(self, apimon_config):
         logging.info("Configuring ApiMon Executors for %s", apimon_config.zone)
         extravars = dict(
@@ -154,6 +198,7 @@ class CloudMon:
                 socket="/tmp/executor.socket",
                 work_dir="/var/lib/apimon",
                 zone=apimon_config.zone,
+                logs_cloud="swift",
             ),
         )
         executor_secure_config = dict()
@@ -171,6 +216,42 @@ class CloudMon:
         )
         if r.rc != 0:
             raise RuntimeError("Error configuring ApiMon Executors")
+
+    def stop_apimon_executors(self, apimon_config):
+        logging.info(
+            "Stopping ApiMon Scheduler in monitoring zone %s",
+            apimon_config.zone,
+        )
+        extravars = dict(
+            executors_group_name=apimon_config.executors_group_name,
+        )
+        r = ansible_runner.run(
+            private_data_dir=self.args.private_data_dir,
+            playbook="stop_executors.yaml",
+            inventory=self.args.inventory,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error stopping ApiMon Schedulers")
+
+    def start_apimon_executors(self, apimon_config):
+        logging.info(
+            "Starting ApiMon Scheduler in monitoring zone %s",
+            apimon_config.zone,
+        )
+        extravars = dict(
+            executors_group_name=apimon_config.executors_group_name,
+        )
+        r = ansible_runner.run(
+            private_data_dir=self.args.private_data_dir,
+            playbook="start_executors.yaml",
+            inventory=self.args.inventory,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error starting ApiMon Schedulers")
 
     def configure_statsd(self, group_name, graphite_host):
         logging.info("Configuring StatsD on %s", group_name)
@@ -210,7 +291,7 @@ class CloudMon:
         logging.debug("Here comes the apimon instance")
         plugin_ref = self.config["cloudmon_plugins"][plugin["name"]]
         env_name = matrix_entry["env"]
-        zone = matrix_entry["zone"]
+        zone = matrix_entry["monitoring_zone"]
         apimon_config = self.apimon_configs.setdefault(zone, ApiMon())
         apimon_config.zone = zone
         schedulers_group_name = plugin.get(
@@ -224,31 +305,37 @@ class CloudMon:
             and apimon_config.schedulers_group_name != schedulers_group_name
         ):
             raise RuntimeError(
-                "Cannot have different ApiMon Scheduler groups for same zone"
+                "Cannot have different ApiMon Scheduler groups for same "
+                "monitoring zone"
             )
         if (
             apimon_config.executors_group_name
             and apimon_config.executors_group_name != executors_group_name
         ):
             raise RuntimeError(
-                "Cannot have different ApiMon Scheduler groups for same zone"
+                "Cannot have different ApiMon Scheduler groups for same "
+                "monitoring zone"
             )
         apimon_config.schedulers_group_name = schedulers_group_name
         apimon_config.executors_group_name = executors_group_name
 
-        if plugin["project"] not in apimon_config.test_projects:
-            for project in plugin_ref["projects"]:
-                if project["name"] == plugin["project"]:
-                    apimon_config.test_projects[plugin["project"]] = project
+        if plugin["tests_project"] not in apimon_config.test_projects:
+            for project in plugin_ref["tests_projects"]:
+                if project["name"] == plugin["tests_project"]:
+                    apimon_config.test_projects[
+                        plugin["tests_project"]
+                    ] = project
                     break
 
-        key = "%s:%s" % (env_name, plugin["project"])
+        key = "%s:%s" % (env_name, plugin["tests_project"])
         if key in apimon_config.test_matrix:
             raise RuntimeError(
                 "Something absolutely wrong - %s is already known", key
             )
         apimon_matrix_entry = dict(
-            env=env_name, project=plugin["project"], tasks=plugin.get("tasks")
+            env=env_name,
+            project=plugin["tests_project"],
+            tasks=plugin.get("tasks"),
         )
         apimon_config.test_matrix[key] = apimon_matrix_entry
         if env_name not in apimon_config.test_environments:
@@ -282,11 +369,13 @@ class CloudMon:
         if env_name not in self.config["environments"]:
             raise RuntimeError("Environment %s is not known", env_name)
         env = self.config["environments"][env_name]
-        if zone not in env["zones"]:
+        if zone not in env["monitoring_zones"]:
             raise RuntimeError(
-                "Environment %s has no zone %s defined", env_name, zone
+                "Environment %s has no monitoring zone %s defined",
+                env_name,
+                zone,
             )
-        clouds = env["zones"][zone].get("clouds", [])
+        clouds = env["monitoring_zones"][zone].get("clouds", [])
         res = dict(name=env_name, env=env.get("env"), clouds=list())
         for cloud in clouds:
             res["clouds"].append(cloud["name"])
@@ -296,11 +385,13 @@ class CloudMon:
         if "clouds_credentials" not in self.config:
             raise RuntimeError("clouds_credentials are not set in config")
         env = self.config["environments"][env_name]
-        if zone not in env["zones"]:
+        if zone not in env["monitoring_zones"]:
             raise RuntimeError(
-                "Environment %s has no zone %s defined", env_name, zone
+                "Environment %s has no monitoring zone %s defined",
+                env_name,
+                zone,
             )
-        clouds = env["zones"][zone].get("clouds", [])
+        clouds = env["monitoring_zones"][zone].get("clouds", [])
         res = dict()
         for cloud in clouds:
             c_name = cloud["name"]
@@ -327,16 +418,29 @@ class CloudMon:
                     # For now we only construct global apimon config matrix
                     self.process_apimon_entry(matrix_entry, plugin)
 
-        # Configure apimons
-        for zone, apimon_config in self.apimon_configs.items():
-            logging.info("Configuring ApiMon on %s", zone)
-            # Configure statsd
-            self.configure_statsd(
-                apimon_config.schedulers_group_name,
-                apimon_config.graphite_host,
-            )
-            self.configure_apimon_schedulers(apimon_config)
-            self.configure_apimon_executors(apimon_config)
+        if self.args.command == "configure":
+            # Configure apimons
+            for zone, apimon_config in self.apimon_configs.items():
+                logging.info("Configuring ApiMon on %s", zone)
+                # Configure statsd
+                self.configure_statsd(
+                    apimon_config.schedulers_group_name,
+                    apimon_config.graphite_host,
+                )
+                self.configure_apimon_schedulers(apimon_config)
+                self.configure_apimon_executors(apimon_config)
+        elif self.args.command == "stop":
+            # Configure apimons
+            for zone, apimon_config in self.apimon_configs.items():
+                logging.info("Stopping ApiMon on %s", zone)
+                self.stop_apimon_schedulers(apimon_config)
+                self.stop_apimon_executors(apimon_config)
+        elif self.args.command == "start":
+            # Configure apimons
+            for zone, apimon_config in self.apimon_configs.items():
+                logging.info("Starting ApiMon on %s", zone)
+                self.start_apimon_schedulers(apimon_config)
+                self.start_apimon_executors(apimon_config)
 
     def process_inventory(self):
         """Pre-process passed inventory"""
@@ -364,7 +468,8 @@ class CloudMon:
         self.inventory = out
         self.process_inventory()
 
-        self.configure_graphite()
+        if self.args.command == "configure":
+            self.configure_graphite()
         self.process_matrix()
 
 
