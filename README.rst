@@ -140,7 +140,15 @@ CloudMon can be invoked specifying path to the config file and inventory file
 
 .. code-block:: console
 
-   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/
+   # Provision
+   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ provision --plugin apimon
+
+   # Stopping
+   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ stop --plugin apimon
+
+   # Starting
+   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ start --plugin apimon
+
 
 Unless CloudMon release process and invocation interface are clarified it is
 possible to use it from the local checkout and install it locally:

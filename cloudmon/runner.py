@@ -9,7 +9,7 @@ import ansible_runner
 COMMAND_CHOICES = ["configure", "stop", "start"]
 
 
-class ApiMon:
+class ApiMonConfig:
     def __init__(self):
         self.statsd_host = None
         self.graphite_host = None
@@ -38,6 +38,308 @@ class ApiMon:
         )
 
 
+class CloudMonConfig:
+    def __init__(self):
+        self.config = None
+        self.inventory = None
+        self.inventory_path = None
+        self.apimon_configs = dict()
+        self.private_data_dir = None
+
+
+class CloudMonCommand:
+    pass
+
+
+class CloudMonProvision(CloudMonCommand):
+    @classmethod
+    def argparse_arguments(cls, parser):
+        subparser = parser.add_parser(
+            "provision", help="Provision CloudMon components"
+        )
+        subparser.add_argument("--plugin", help="Plugin name")
+
+    def provision_statsd(self, config, group_name, graphite_host, check):
+        logging.info("Provisioning StatsD on %s", group_name)
+        extravars = dict(
+            statsd_hosts=group_name,
+            statsd_graphite_host=graphite_host,
+            statsd_graphite_port=2003,
+            statsd_graphite_port_pickle=2004,
+            statsd_graphite_protocol="pickle",
+            statsd_legacy_namespace=False,
+            statsd_server="./servers/udp",
+            ansible_check_mode=check,
+        )
+        r = ansible_runner.run(
+            private_data_dir=config.private_data_dir,
+            playbook="install_statsd.yaml",
+            inventory=config.inventory_path,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error configuring StatsD")
+
+    def provision_graphite(self, config, check):
+        logging.info("Provisioning Graphite")
+        extravars = dict(
+            ansible_check_mode=check,
+        )
+        r = ansible_runner.run(
+            private_data_dir=config.private_data_dir,
+            playbook="install_graphite.yaml",
+            inventory=config.inventory_path,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error configuring Graphite")
+
+    def provision_apimon_schedulers(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Provisioning ApiMon Scheduler in monitoring zone %s",
+                apimon_config.zone,
+            )
+            # Configure statsd
+            self.provision_statsd(
+                config,
+                apimon_config.schedulers_group_name,
+                apimon_config.graphite_host,
+                check,
+            )
+
+            schedulers = config.inventory[apimon_config.schedulers_group_name][
+                "hosts"
+            ]
+            if len(schedulers) > 1:
+                raise RuntimeError(
+                    "Deploying ApiMon Scheduler to more then one host is "
+                    "currently not supported"
+                )
+
+            extravars = dict(
+                ansible_check_mode=check,
+                scheduler_config_file_name="apimon-scheduler.yaml",
+                scheduler_secure_config_file_name="apimon-scheduler-secure.yaml",
+                schedulers_group_name=apimon_config.schedulers_group_name,
+            )
+            if apimon_config.scheduler_image:
+                extravars["scheduler_image"] = apimon_config.scheduler_image
+
+            scheduler_config = dict(
+                secure="/etc/apimon/apimon-scheduler-secure.yaml",
+                gear=[dict(host="0.0.0.0", port=4730, start=True)],
+                log=dict(config="/etc/apimon/logging.conf"),
+                metrics=dict(
+                    statsd=dict(host=apimon_config.statsd_host, port=8125)
+                ),
+                scheduler=dict(
+                    socket="/tmp/scheduler.socket",
+                    refresh_interval=10,
+                    work_dir="/var/lib/apimon",
+                    zone=apimon_config.zone,
+                ),
+                test_environments=list(
+                    apimon_config.test_environments.values()
+                ),
+                test_projects=list(apimon_config.test_projects.values()),
+                test_matrix=list(apimon_config.test_matrix.values()),
+            )
+            scheduler_secure_config = dict(
+                clouds=list(apimon_config.clouds.values())
+            )
+            extravars["scheduler_config"] = scheduler_config
+            extravars["scheduler_secure_config"] = scheduler_secure_config
+
+            logging.debug("Scheduler extra vars: %s", extravars)
+
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="install_scheduler.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error provisioning ApiMon Schedulers")
+
+    def provision_apimon_executors(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Provision ApiMon Executors for %s", apimon_config.zone
+            )
+            extravars = dict(
+                executor_config_file_name="apimon-executor.yaml",
+                executor_secure_config_file_name="apimon-executor-secure.yaml",
+                executors_group_name=apimon_config.executors_group_name,
+            )
+            if apimon_config.executor_image:
+                extravars["executor_image"] = apimon_config.executor_image
+
+            executor_config = dict(
+                ansible_check_mode=check,
+                secure="/etc/apimon/apimon-executor-secure.yaml",
+                gear=[dict(host=apimon_config.scheduler_host, port=4730)],
+                log=dict(config="/etc/apimon/logging.conf"),
+                metrics=dict(
+                    statsd=dict(host=apimon_config.statsd_host, port=8125)
+                ),
+                executor=dict(
+                    load_multiplier=2,
+                    socket="/tmp/executor.socket",
+                    work_dir="/var/lib/apimon",
+                    zone=apimon_config.zone,
+                    logs_cloud="swift",
+                ),
+            )
+            executor_secure_config = dict()
+            extravars["executor_config"] = executor_config
+            extravars["executor_secure_config"] = executor_secure_config
+
+            logging.debug("Executor extra vars: %s", extravars)
+
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="install_executor.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error provisioning ApiMon Executors")
+
+    def execute(self, config, args):
+        self.provision_graphite(config, args.check)
+        if args.plugin == "apimon":
+            logging.debug("Provisionings ApiMon")
+            self.provision_apimon_schedulers(config, args.check)
+            self.provision_apimon_executors(config, args.check)
+
+
+class CloudMonStop(CloudMonCommand):
+    @classmethod
+    def argparse_arguments(cls, parser):
+        subparser = parser.add_parser("stop", help="Stop CloudMon components")
+        subparser.add_argument("--plugin", help="Plugin name")
+        subparser.add_argument("--component", help="Plugin component")
+
+    def execute(self, config, args):
+        if args.plugin == "apimon":
+            logging.debug("Stopping ApiMon")
+            if not args.component:
+                self.stop_apimon_schedulers(config, args.check)
+                self.stop_apimon_executors(config, args.check)
+            else:
+                if args.component == "scheduler":
+                    self.stop_apimon_schedulers(config, args.check)
+                elif args.component == "executor":
+                    self.stop_apimon_executors(config, args.check)
+
+    def stop_apimon_schedulers(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Stopping ApiMon Scheduler in monitoring zone %s",
+                apimon_config.zone,
+            )
+            extravars = dict(
+                ansible_check_mode=check,
+                schedulers_group_name=apimon_config.schedulers_group_name,
+            )
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="stop_schedulers.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error stopping ApiMon Schedulers")
+
+    def stop_apimon_executors(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Stopping ApiMon Executors in monitoring zone %s",
+                apimon_config.zone,
+            )
+            extravars = dict(
+                ansible_check_mode=check,
+                executors_group_name=apimon_config.executors_group_name,
+            )
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="stop_executors.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error stopping ApiMon Executors")
+
+
+class CloudMonStart(CloudMonCommand):
+    @classmethod
+    def argparse_arguments(cls, parser):
+        subparser = parser.add_parser(
+            "start", help="Start CloudMon components"
+        )
+        subparser.add_argument("--plugin", help="Plugin name")
+        subparser.add_argument("--component", help="Plugin component")
+
+    def execute(self, config, args):
+        if args.plugin == "apimon":
+            logging.debug("Starting ApiMon")
+            if not args.component:
+                self.start_apimon_schedulers(config, args.check)
+                self.start_apimon_executors(config, args.check)
+            else:
+                if args.component == "scheduler":
+                    self.start_apimon_schedulers(config, args.check)
+                elif args.component == "executor":
+                    self.start_apimon_executors(config, args.check)
+
+    def start_apimon_schedulers(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Starting ApiMon Scheduler in monitoring zone %s",
+                apimon_config.zone,
+            )
+            extravars = dict(
+                ansible_check_mode=check,
+                schedulers_group_name=apimon_config.schedulers_group_name,
+            )
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="start_schedulers.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error starting ApiMon Schedulers")
+
+    def start_apimon_executors(self, config, check):
+        for _, apimon_config in config.apimon_configs.items():
+            logging.info(
+                "Starting ApiMon Executors in monitoring zone %s",
+                apimon_config.zone,
+            )
+            extravars = dict(
+                ansible_check_mode=check,
+                executors_group_name=apimon_config.executors_group_name,
+            )
+            r = ansible_runner.run(
+                private_data_dir=config.private_data_dir,
+                playbook="start_executors.yaml",
+                inventory=config.inventory_path,
+                extravars=extravars,
+                verbosity=1,
+            )
+            if r.rc != 0:
+                raise RuntimeError("Error starting ApiMon Executors")
+
+
 class CloudMon:
     def __init__(self):
         self.config = None
@@ -56,10 +358,7 @@ class CloudMon:
 
     def create_parser(self):
         parser = argparse.ArgumentParser(description="CloudMon Controller")
-        parser.add_argument(
-            "command", help="Execution command",
-            choices=COMMAND_CHOICES
-        )
+        subparsers = parser.add_subparsers(dest="command", help="command help")
         parser.add_argument(
             "--config",
             dest="config",
@@ -73,8 +372,19 @@ class CloudMon:
             help="Ansible-runner project dir",
         )
         parser.add_argument(
-            "--inventory", dest="inventory", help="specify the Inventory path"
+            "--inventory",
+            dest="inventory",
+            default="ansible/inventory",
+            help="specify the Inventory path",
         )
+        parser.add_argument(
+            "--check", action="store_true", help="Check mode. Don't work yet."
+        )
+
+        CloudMonProvision.argparse_arguments(subparsers)
+        CloudMonStop.argparse_arguments(subparsers)
+        CloudMonStart.argparse_arguments(subparsers)
+
         return parser
 
     def parse_arguments(self, args=None):
@@ -83,216 +393,12 @@ class CloudMon:
 
         return parser
 
-    def configure_apimon_schedulers(self, apimon_config):
-        logging.info(
-            "Configuring ApiMon Scheduler in monitoring zone %s",
-            apimon_config.zone,
-        )
-        schedulers = self.inventory[apimon_config.schedulers_group_name][
-            "hosts"
-        ]
-        if len(schedulers) > 1:
-            raise RuntimeError(
-                "Deploying ApiMon Scheduler to more then one host is "
-                "currently not supported"
-            )
-
-        extravars = dict(
-            scheduler_config_file_name="apimon-scheduler.yaml",
-            scheduler_secure_config_file_name="apimon-scheduler-secure.yaml",
-            schedulers_group_name=apimon_config.schedulers_group_name,
-        )
-        if apimon_config.scheduler_image:
-            extravars["scheduler_image"] = apimon_config.scheduler_image
-
-        scheduler_config = dict(
-            secure="/etc/apimon/apimon-scheduler-secure.yaml",
-            gear=[dict(host="0.0.0.0", port=4730, start=True)],
-            log=dict(config="/etc/apimon/logging.conf"),
-            metrics=dict(
-                statsd=dict(host=apimon_config.statsd_host, port=8125)
-            ),
-            scheduler=dict(
-                socket="/tmp/scheduler.socket",
-                refresh_interval=10,
-                work_dir="/var/lib/apimon",
-                zone=apimon_config.zone,
-            ),
-            test_environments=list(apimon_config.test_environments.values()),
-            test_projects=list(apimon_config.test_projects.values()),
-            test_matrix=list(apimon_config.test_matrix.values()),
-        )
-        scheduler_secure_config = dict(
-            clouds=list(apimon_config.clouds.values())
-        )
-        extravars["scheduler_config"] = scheduler_config
-        extravars["scheduler_secure_config"] = scheduler_secure_config
-
-        logging.debug("Scheduler extra vars: %s", extravars)
-
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="install_scheduler.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error configuring ApiMon Schedulers")
-
-    def stop_apimon_schedulers(self, apimon_config):
-        logging.info(
-            "Stopping ApiMon Scheduler in monitoring zone %s",
-            apimon_config.zone,
-        )
-        extravars = dict(
-            schedulers_group_name=apimon_config.schedulers_group_name,
-        )
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="stop_schedulers.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error stopping ApiMon Schedulers")
-
-    def start_apimon_schedulers(self, apimon_config):
-        logging.info(
-            "Starting ApiMon Scheduler in monitoring zone %s",
-            apimon_config.zone,
-        )
-        extravars = dict(
-            schedulers_group_name=apimon_config.schedulers_group_name,
-        )
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="start_schedulers.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error starting ApiMon Schedulers")
-
-    def configure_apimon_executors(self, apimon_config):
-        logging.info("Configuring ApiMon Executors for %s", apimon_config.zone)
-        extravars = dict(
-            executor_config_file_name="apimon-executor.yaml",
-            executor_secure_config_file_name="apimon-executor-secure.yaml",
-            executors_group_name=apimon_config.executors_group_name,
-        )
-        if apimon_config.executor_image:
-            extravars["executor_image"] = apimon_config.executor_image
-
-        executor_config = dict(
-            secure="/etc/apimon/apimon-executor-secure.yaml",
-            gear=[dict(host=apimon_config.scheduler_host, port=4730)],
-            log=dict(config="/etc/apimon/logging.conf"),
-            metrics=dict(
-                statsd=dict(host=apimon_config.statsd_host, port=8125)
-            ),
-            executor=dict(
-                load_multiplier=2,
-                socket="/tmp/executor.socket",
-                work_dir="/var/lib/apimon",
-                zone=apimon_config.zone,
-                logs_cloud="swift",
-            ),
-        )
-        executor_secure_config = dict()
-        extravars["executor_config"] = executor_config
-        extravars["executor_secure_config"] = executor_secure_config
-
-        logging.debug("Executor extra vars: %s", extravars)
-
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="install_executor.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error configuring ApiMon Executors")
-
-    def stop_apimon_executors(self, apimon_config):
-        logging.info(
-            "Stopping ApiMon Scheduler in monitoring zone %s",
-            apimon_config.zone,
-        )
-        extravars = dict(
-            executors_group_name=apimon_config.executors_group_name,
-        )
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="stop_executors.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error stopping ApiMon Schedulers")
-
-    def start_apimon_executors(self, apimon_config):
-        logging.info(
-            "Starting ApiMon Scheduler in monitoring zone %s",
-            apimon_config.zone,
-        )
-        extravars = dict(
-            executors_group_name=apimon_config.executors_group_name,
-        )
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="start_executors.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error starting ApiMon Schedulers")
-
-    def configure_statsd(self, group_name, graphite_host):
-        logging.info("Configuring StatsD on %s", group_name)
-        extravars = dict(
-            statsd_hosts=group_name,
-            statsd_graphite_host=graphite_host,
-            statsd_graphite_port=2003,
-            statsd_graphite_port_pickle=2004,
-            statsd_graphite_protocol="pickle",
-            statsd_legacy_namespace=False,
-            statsd_server="./servers/udp",
-        )
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="install_statsd.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error configuring StatsD")
-
-    def configure_graphite(self):
-        logging.info("Configuring Graphite")
-        extravars = dict()
-        r = ansible_runner.run(
-            private_data_dir=self.args.private_data_dir,
-            playbook="install_graphite.yaml",
-            inventory=self.args.inventory,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error configuring Graphite")
-
     def process_apimon_entry(self, matrix_entry, plugin):
         logging.debug("Here comes the apimon instance")
         plugin_ref = self.config["cloudmon_plugins"][plugin["name"]]
         env_name = matrix_entry["env"]
         zone = matrix_entry["monitoring_zone"]
-        apimon_config = self.apimon_configs.setdefault(zone, ApiMon())
+        apimon_config = self.apimon_configs.setdefault(zone, ApiMonConfig())
         apimon_config.zone = zone
         schedulers_group_name = plugin.get(
             "schedulers_inventory_group_name", "schedulers"
@@ -418,30 +524,6 @@ class CloudMon:
                     # For now we only construct global apimon config matrix
                     self.process_apimon_entry(matrix_entry, plugin)
 
-        if self.args.command == "configure":
-            # Configure apimons
-            for zone, apimon_config in self.apimon_configs.items():
-                logging.info("Configuring ApiMon on %s", zone)
-                # Configure statsd
-                self.configure_statsd(
-                    apimon_config.schedulers_group_name,
-                    apimon_config.graphite_host,
-                )
-                self.configure_apimon_schedulers(apimon_config)
-                self.configure_apimon_executors(apimon_config)
-        elif self.args.command == "stop":
-            # Configure apimons
-            for zone, apimon_config in self.apimon_configs.items():
-                logging.info("Stopping ApiMon on %s", zone)
-                self.stop_apimon_schedulers(apimon_config)
-                self.stop_apimon_executors(apimon_config)
-        elif self.args.command == "start":
-            # Configure apimons
-            for zone, apimon_config in self.apimon_configs.items():
-                logging.info("Starting ApiMon on %s", zone)
-                self.start_apimon_schedulers(apimon_config)
-                self.start_apimon_executors(apimon_config)
-
     def process_inventory(self):
         """Pre-process passed inventory"""
         random_graphite_host = self.inventory["graphite"]["hosts"][0]
@@ -467,10 +549,21 @@ class CloudMon:
         )
         self.inventory = out
         self.process_inventory()
-
-        if self.args.command == "configure":
-            self.configure_graphite()
         self.process_matrix()
+        config = CloudMonConfig()
+        config.config = self.config
+        config.inventory = self.inventory
+        config.inventory_path = self.args.inventory
+        config.apimon_configs = self.apimon_configs
+        config.private_data_dir = self.args.private_data_dir
+
+        if self.args.command == "stop":
+            CloudMonStop().execute(config, self.args)
+        elif self.args.command == "start":
+            CloudMonStart().execute(config, self.args)
+        elif self.args.command == "provision":
+            CloudMonProvision().execute(config, self.args)
+        sys.exit(0)
 
 
 def main():
