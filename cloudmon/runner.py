@@ -210,12 +210,41 @@ class CloudMonProvision(CloudMonCommand):
             if r.rc != 0:
                 raise RuntimeError("Error provisioning ApiMon Executors")
 
+    def provision_grafana_ds(self, config, check):
+        logging.debug("Configuring Grafana datasources")
+        grafana_config = config.config["grafana"]
+        grafana_datasources = dict()
+        if "carbon" in grafana_config:
+            carbon = grafana_config["carbon"]
+            grafana_datasources["cloudmon"] = dict(
+                grafana_url=grafana_config["api_url"],
+                grafana_api_key=grafana_config["api_token"],
+ds_type="graphite",
+                ds_url=carbon["url"],
+                tls_skip_veriy=carbon.get("tls_skip_verify", False)
+            )
+        extravars = dict(
+            ansible_check_mode=check,
+            grafana_datasources=grafana_datasources,
+        )
+        r = ansible_runner.run(
+            private_data_dir=config.private_data_dir,
+            playbook="manage_grafana_ds.yaml",
+            inventory=config.inventory_path,
+            extravars=extravars,
+            verbosity=1,
+        )
+        if r.rc != 0:
+            raise RuntimeError("Error configuring datasources in Grafana")
+
     def execute(self, config, args):
         self.provision_graphite(config, args.check)
         if args.plugin == "apimon":
             logging.debug("Provisionings ApiMon")
             self.provision_apimon_schedulers(config, args.check)
             self.provision_apimon_executors(config, args.check)
+        if not args.plugin:
+            self.provision_grafana_ds(config, args.check)
 
 
 class CloudMonStop(CloudMonCommand):
@@ -526,13 +555,16 @@ class CloudMon:
 
     def process_inventory(self):
         """Pre-process passed inventory"""
-        random_graphite_host = self.inventory["graphite"]["hosts"][0]
-        graphite_host_vars = self.inventory["_meta"]["hostvars"].get(
-            random_graphite_host
-        )
-        self.graphite_address = graphite_host_vars.get(
-            "internal_address", random_graphite_host
-        )
+        if "graphite" in self.inventory:
+            random_graphite_host = self.inventory["graphite"]["hosts"][0]
+            graphite_host_vars = self.inventory["_meta"]["hostvars"].get(
+                random_graphite_host
+            )
+            self.graphite_address = graphite_host_vars.get(
+                "internal_address", random_graphite_host
+            )
+        elif "graphite" in self.config:
+            self.graphite_address = self.config["graphite"].get("host")
 
     def main(self):
         self.parse_arguments()

@@ -10,15 +10,9 @@ all:
     graphite:
       hosts:
         80.158.57.168
-    schedulers_ext:
+    schedulers:
       hosts:
         80.158.57.168
-    executors_ext:
-      hosts:
-        80.158.57.168
-    schedulers_int:
-      hosts:
-        80.158.57.168
-    executors_int:
+    executors:
       hosts:
         80.158.57.168

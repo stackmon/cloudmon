@@ -1,0 +1,11 @@
+---
+all:
+  hosts:
+    localhost
+  children:
+    schedulers:
+      hosts:
+        localhost
+    executors:
+      hosts:
+        localhost
