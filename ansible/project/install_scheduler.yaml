@@ -7,6 +7,6 @@
   gather_facts: true
   serial: 1
   roles:
-    - opentelekomcloud.apimon.scheduler
+    - apimon_scheduler
   tasks:
   tags: apimon_scheduler

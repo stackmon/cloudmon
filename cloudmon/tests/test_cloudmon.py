@@ -23,6 +23,5 @@ from cloudmon.tests import base
 
 
 class TestCloudmon(base.TestCase):
-
     def test_something(self):
         pass

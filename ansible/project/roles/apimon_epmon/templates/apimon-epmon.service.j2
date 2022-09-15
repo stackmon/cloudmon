@@ -1,0 +1,31 @@
+[Unit]
+Description=Apimon Endpoint Monitor container
+Wants=syslog.service
+
+[Service]
+Type=simple
+Restart=always
+TimeoutSec=90s
+User={{ epmon_os_user }}
+Group={{ epmon_os_group }}
+EnvironmentFile=/etc/apimon/env_epmon
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} pull ${EPMON_IMAGE}
+ExecStartPre=-{{ container_runtime }} rm {{ epmon_container_name }}
+
+ExecStart={{ container_runtime }} run \
+  --name "{{ epmon_container_name }}" \
+{% if container_command == 'podman' %}
+  --log-opt=path=/dev/null \
+{% endif %}
+  -v {{ epmon_config_dir }}:/etc/apimon:ro \
+  ${EPMON_IMAGE} epmon --config {{ epmon_config_dir}}/{{ epmon_config_file_name }}
+
+ExecReload={{ container_runtime }} kill -s SIGHUP {{ epmon_container_name }}
+
+ExecStop={{ container_runtime }} stop -t 10 {{ epmon_container_name }}
+
+[Install]
+WantedBy=multi-user.target
+

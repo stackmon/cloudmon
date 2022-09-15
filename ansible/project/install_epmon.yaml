@@ -8,5 +8,5 @@
   gather_facts: true
   serial: 1
   roles:
-    - opentelekomcloud.apimon.epmon
+    - apimon_epmon
   tags: epmon

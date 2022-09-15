@@ -1,0 +1,9 @@
+---
+# handlers file for epmon
+- name: Restart epmon
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ epmon_systemd_service_name }}"
+    enabled: true
+    state: "restarted"
+    daemon_reload: true

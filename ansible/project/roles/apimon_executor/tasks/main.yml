@@ -1,0 +1,103 @@
+---
+# tasks file for executor
+
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop: 
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- name: Create executor group
+  become: yes
+  ansible.builtin.group:
+    name: "{{ executor_os_group }}"
+    state: present
+
+- name: Create executor user
+  become: true
+  ansible.builtin.user:
+    name: "{{ executor_os_user }}"
+    group: "{{ executor_os_group }}"
+    groups: "{{ (container_command == 'docker') | ternary('docker', '', omit) }}"
+    state: "present"
+
+- name: Write Executor SystemD unit file
+  become: true
+  ansible.builtin.template:
+    src: "apimon-executor.service.j2"
+    dest: "{{ executor_systemd_unit_path }}"
+  notify:
+    - Restart executor
+
+- name: Create required directories
+  become: true
+  ansible.builtin.file:
+    dest: "{{ item.dest }}"
+    state: "directory"
+    owner: "{{ executor_os_user }}"
+    group: "{{ executor_os_group }}"
+    mode: "{{ item.mode | default(omit) }}"
+  loop:
+    - {dest: "{{ executor_config_dir }}", mode: "0755"}
+
+- name: Write env
+  become: true
+  ansible.builtin.template:
+    src: "env_executor"
+    dest: "{{ executor_config_dir }}/env_executor"
+    owner: "{{ executor_os_user }}"
+    group: "{{ executor_os_group }}"
+    mode: "0644"
+  notify:
+    - Restart executor
+
+- name: Write logging.conf
+  become: true
+  ansible.builtin.template:
+    src: "logging.conf"
+    dest: "{{ executor_config_dir }}/logging.conf"
+    owner: "{{ executor_os_user }}"
+    group: "{{ executor_os_group }}"
+    mode: "0644"
+  notify:
+    - Restart executor
+
+- name: Write executor config
+  become: true
+  ansible.builtin.copy:
+    content: "{{ executor_config | to_nice_yaml(indent=2, width=79) }}"
+    dest: "{{ executor_config_dir }}/{{ executor_config_file_name }}"
+    group: "{{ executor_os_group }}"
+    owner: "{{ executor_os_user }}"
+    mode: "0644"
+  when:
+    - "executor_config is defined"
+  notify:
+    - Restart executor
+
+- name: Write executor secure config
+  become: true
+  ansible.builtin.copy:
+    content: "{{ executor_secure_config | to_nice_yaml(indent=2, width=79) }}"
+    dest: "{{ executor_config_dir }}/{{ executor_secure_config_file_name }}"
+    group: "{{ executor_os_group }}"
+    owner: "{{ executor_os_user }}"
+    mode: "0644"
+  when:
+    - "executor_secure_config is defined"
+  notify:
+    - Restart executor

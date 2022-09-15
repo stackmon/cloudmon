@@ -15,5 +15,4 @@
 import pbr.version
 
 
-__version__ = pbr.version.VersionInfo(
-    'cloudmon').version_string()
+__version__ = pbr.version.VersionInfo("cloudmon").version_string()

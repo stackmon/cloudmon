@@ -8,5 +8,5 @@
   gather_facts: true
   serial: 1
   roles:
-    - opentelekomcloud.apimon.executor
+    - apimon_executor
   tags: executor
