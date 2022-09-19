@@ -1,0 +1,5 @@
+# _all_ is to forcibly include ssh service
+firewalld_services_enable: []
+firewalld_services_disable: []
+firewalld_ports_enable: []
+firewalld_ports_disable: []

@@ -3,4 +3,5 @@ ansible_python_interpreter: "/usr/bin/env python3"
 packages:
   - podman
   - firewalld
+  - python3-firewall
 container_command: podman

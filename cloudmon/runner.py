@@ -33,6 +33,16 @@ class CloudMonConfig:
         self.inventory_path = None
         self.apimon_configs = dict()
         self.private_data_dir = None
+        self.default_extravars = dict(
+            distro_lookup_path=[
+                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.{{ ansible_facts.architecture }}.yaml",
+                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.yaml",
+                "{{ ansible_facts.distribution }}.{{ ansible_facts.architecture }}.yaml",
+                "{{ ansible_facts.distribution }}.yaml",
+                "{{ ansible_facts.os_family }}.yaml",
+                "default.yaml",
+            ]
+        )
 
 
 class CloudMonCommand:
@@ -52,6 +62,8 @@ class CloudMonProvision(CloudMonCommand):
         extravars = dict(
             ansible_check_mode=check,
         )
+        # TODO: it is bad to override with defaults after assignment
+        extravars.update(config.default_extravars)
         r = ansible_runner.run(
             private_data_dir=config.private_data_dir,
             playbook="install_graphite.yaml",
@@ -129,16 +141,6 @@ class CloudMon:
         self.config = None
         self.inventory = None
         self.apimon_configs = dict()
-        self.default_extravars = dict(
-            distro_lookup_path=[
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.{{ ansible_facts.architecture }}.yaml"
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.yaml"
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.architecture }}.yaml"
-                "{{ ansible_facts.distribution }}.yaml"
-                "{{ ansible_facts.os_family }}.yaml"
-                "default.yaml"
-            ]
-        )
 
     def create_parser(self):
         parser = argparse.ArgumentParser(description="CloudMon Controller")

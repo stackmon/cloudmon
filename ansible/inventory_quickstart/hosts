@@ -1,18 +1,18 @@
 all:
   hosts:
     # Replace with your host IP address
-    80.158.57.168:
-      ansible_user: ubuntu
+    80.158.61.38:
+      ansible_user: linux
       # Since components want to talk to each other using internal network -
       # define this
-      internal_address: 192.168.0.245
+      internal_address: 192.168.0.221
   children:
     graphite:
       hosts:
-        80.158.57.168
+        80.158.61.38
     schedulers:
       hosts:
-        80.158.57.168
+        80.158.61.38
     executors:
       hosts:
-        80.158.57.168
+        80.158.61.38
