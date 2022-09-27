@@ -5,17 +5,21 @@ distro_lookup_path:
   - "{{ ansible_facts.os_family }}.yaml"
   - "main.yaml"
 
-scheduler_os_group: "apimon"
-scheduler_os_user: "apimon"
-scheduler_systemd_service_name: "apimon-scheduler.service"
+scheduler_os_group: "cloudmon"
+scheduler_os_user: "cloudmon"
+scheduler_systemd_service_name: "cloudmon-apimon-scheduler.service"
 scheduler_systemd_unit_path: "{{ ('/etc/systemd/system/' + scheduler_systemd_service_name ) }}"
 scheduler_image: "quay.io/opentelekomcloud/apimon"
-scheduler_config_dir: "/etc/apimon"
+scheduler_config_dir: "/etc/cloudmon"
 scheduler_config_file_name: "apimon.yaml"
+scheduler_config_path: "{{ scheduler_config_dir }}/{{ scheduler_config_file_name }}"
 scheduler_secure_config_file_name: "apimon_secure.yaml"
+scheduler_secure_config_path: "{{ scheduler_config_dir }}/{{ scheduler_secure_config_file_name }}"
+scheduler_env_file_name: "apimon_scheduler_env"
+scheduler_env_path: "{{ scheduler_config_dir }}/{{ scheduler_env_file_name }}"
 scheduler_config:
 scheduler_secure_config:
-scheduler_container_name: "apimon_scheduler"
+scheduler_container_name: "cloudmon_apimon_scheduler"
 
 container_command: "podman"
 container_runtime: "/usr/bin/{{ container_command }}"

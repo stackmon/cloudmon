@@ -1,0 +1,18 @@
+---
+# handlers file for roles/grafana
+
+- name: restart grafana
+  become: true
+  systemd:
+    name: "grafana.service"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: restart grafana-renderer
+  become: true
+  systemd:
+    name: "grafana-renderer.service"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

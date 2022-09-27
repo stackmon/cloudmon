@@ -1,0 +1,5 @@
+---
+packages:
+  - docker.io
+
+container_command: docker

@@ -1,0 +1,10 @@
+---
+- name: Manage databases and users
+  hosts: "{{ postgresql_group_name }}"
+  tasks:
+    - name: Manage DB
+      include_role:
+        name: manage_db
+      loop: "{{ databases }}"
+      loop_control:
+        loop_var: "db"

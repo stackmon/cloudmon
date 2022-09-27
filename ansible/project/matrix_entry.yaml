@@ -1,6 +1,0 @@
----
-- name: Loop through entry plugins
-  ansible.builtin.include_tasks: "process_matrix_plugin.yaml"
-  loop: "{{ zj_matrix_entry_item.plugins }}"
-  loop_control:
-    loop_var: "zj_matrix_plugin_item"

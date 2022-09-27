@@ -8,7 +8,7 @@ Restart=always
 TimeoutSec=90s
 User={{ epmon_os_user }}
 Group={{ epmon_os_group }}
-EnvironmentFile=/etc/apimon/env_epmon
+EnvironmentFile={{ epmon_env_path }}
 
 ExecStartPre=-{{ container_runtime }} system migrate
 ExecStartPre=-{{ container_runtime }} pull ${EPMON_IMAGE}
@@ -20,7 +20,7 @@ ExecStart={{ container_runtime }} run \
   --log-opt=path=/dev/null \
 {% endif %}
   -v {{ epmon_config_dir }}:/etc/apimon:ro \
-  ${EPMON_IMAGE} epmon --config {{ epmon_config_dir}}/{{ epmon_config_file_name }}
+  ${EPMON_IMAGE} epmon --config /etc/apimon/{{ epmon_config_file_name }}
 
 ExecReload={{ container_runtime }} kill -s SIGHUP {{ epmon_container_name }}
 
@@ -28,4 +28,3 @@ ExecStop={{ container_runtime }} stop -t 10 {{ epmon_container_name }}
 
 [Install]
 WantedBy=multi-user.target
-

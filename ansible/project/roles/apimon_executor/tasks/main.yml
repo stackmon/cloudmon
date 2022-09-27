@@ -58,7 +58,7 @@
   become: true
   ansible.builtin.template:
     src: "env_executor"
-    dest: "{{ executor_config_dir }}/env_executor"
+    dest: "{{ executor_env_path }}"
     owner: "{{ executor_os_user }}"
     group: "{{ executor_os_group }}"
     mode: "0644"
@@ -80,7 +80,7 @@
   become: true
   ansible.builtin.copy:
     content: "{{ executor_config | to_nice_yaml(indent=2, width=79) }}"
-    dest: "{{ executor_config_dir }}/{{ executor_config_file_name }}"
+    dest: "{{ executor_config_path }}"
     group: "{{ executor_os_group }}"
     owner: "{{ executor_os_user }}"
     mode: "0644"
@@ -93,7 +93,7 @@
   become: true
   ansible.builtin.copy:
     content: "{{ executor_secure_config | to_nice_yaml(indent=2, width=79) }}"
-    dest: "{{ executor_config_dir }}/{{ executor_secure_config_file_name }}"
+    dest: "{{ executor_secure_config_path }}"
     group: "{{ executor_os_group }}"
     owner: "{{ executor_os_user }}"
     mode: "0644"

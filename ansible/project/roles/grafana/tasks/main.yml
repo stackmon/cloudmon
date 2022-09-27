@@ -1,0 +1,94 @@
+---
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- include_tasks: firewall.yml
+
+- name: Create Grafana group
+  become: true
+  ansible.builtin.group:
+    name: "{{ grafana_os_user }}"
+    state: present
+
+- name: Create Grafana user for docker/podman
+  become: true
+  ansible.builtin.user:
+    name: "{{ grafana_os_user }}"
+    group: "{{ grafana_os_group }}"
+    groups: "{{ 'docker' if container_command == 'docker' else '' }}"
+    state: present
+
+- name: Create required directories
+  become: true
+  file:
+    path: "{{ item.dest }}"
+    state: directory
+    owner: "{{ grafana_os_user }}"
+    group: "{{ grafana_os_group }}"
+    mode: "{{ item.mode | default(omit) }}"
+  loop:
+    - {dest: "/etc/grafana"}
+    - {dest: "/etc/grafana/provisioning"}
+
+- name: Write Grafana config env file
+  become: true
+  template:
+    src: "env.j2"
+    dest: "/etc/grafana/env"
+    owner: "{{ grafana_os_user }}"
+    group: "{{ grafana_os_group }}"
+    mode: 0664
+  notify:
+    - restart grafana
+
+- name: Write Grafana Image Renderer Systemd unit file
+  become: true
+  template:
+    src: "grafana-renderer.service.j2"
+    dest: "/etc/systemd/system/grafana-renderer.service"
+  when: 
+    - "grafana_enable_renderer is defined"
+    - "grafana_enable_renderer"
+  notify:
+    - restart grafana-renderer
+
+- name: Write Grafana Systemd unit file
+  become: true
+  template:
+    src: "grafana.service.j2"
+    dest: "/etc/systemd/system/grafana.service"
+  notify:
+    - restart grafana
+
+- name: Force all notified handlers to run at this point, not waiting for normal sync points
+  meta: flush_handlers
+
+- name: Make sure the Grafana service started
+  become: true
+  systemd:
+    state: started
+    name: "grafana.service"
+
+- name: Wait for grafana container to listen 
+  become: true
+  wait_for:
+    host: 0.0.0.0
+    port: 3000
+    timeout: 120

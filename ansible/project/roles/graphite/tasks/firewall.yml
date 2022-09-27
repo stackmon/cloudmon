@@ -1,0 +1,10 @@
+---
+# Firewalld enablement
+
+- name: Allow graphite port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "80/tcp"
+    permanent: "yes"
+    immediate: "yes"

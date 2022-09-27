@@ -2,9 +2,11 @@
 # Playbook to install Graphite server
 #
 - name: Provision Graphite
-  hosts: "graphite:!disabled"
+  hosts: "{{ graphite_group_name }}:!disabled"
   become: true
   gather_facts: true
+  roles:
+    - firewalld
   tasks:
     # host/group should have "graphite_instance_group" var with the name of the group
     # graphite node should become member of (relay will be configired with all

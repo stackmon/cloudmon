@@ -1,0 +1,25 @@
+---
+# defaults file for epmon
+distro_lookup_path:
+  - "{{ ansible_facts.distribution }}.yaml"
+  - "{{ ansible_facts.os_family }}.yaml"
+  - "main.yaml"
+
+epmon_os_user: "cloudmon"
+epmon_os_group: "cloudmon"
+epmon_systemd_service_name: "cloudmon-epmon.service"
+epmon_systemd_unit_path: "{{ ('/etc/systemd/system/'+ epmon_systemd_service_name) }}"
+epmon_image: "quay.io/opentelekomcloud/apimon"
+epmon_config_dir: "/etc/cloudmon"
+epmon_config_file_name: "cloudmon-epmon.yaml"
+epmon_config_path: "{{ epmon_config_dir }}/{{ epmon_config_file_name }}"
+epmon_secure_config_file_name: "cloudmon-epmon-secure.yaml"
+epmon_secure_config_path: "{{ epmon_config_dir }}/{{ epmon_secure_config_file_name }}"
+epmon_env_file_name: "epmon_env"
+epmon_env_path: "{{ epmon_config_dir }}/{{ epmon_env_file_name }}"
+# epmon_config:
+# epmon_secure_config:
+epmon_container_name: "cloudmon_epmon"
+
+container_command: "podman"
+container_runtime: "/usr/bin/{{ container_command }}"

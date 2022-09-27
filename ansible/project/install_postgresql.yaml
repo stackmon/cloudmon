@@ -1,0 +1,9 @@
+---
+# Playbook to install PostgreSQL
+#
+- name: Provision PostgreSQL
+  hosts: "{{ postgresql_group_name }}:!disabled"
+  become: true
+  gather_facts: true
+  roles:
+    - postgresql

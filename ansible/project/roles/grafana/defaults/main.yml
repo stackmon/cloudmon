@@ -1,0 +1,16 @@
+---
+# defaults file for roles/grafana
+container_runtime: "/usr/bin/{{ container_command }}"
+
+grafana_os_user: grafana
+grafana_os_group: grafana
+
+grafana_service_account_name: grafana
+
+packages: []
+
+grafana_uid_prefix: ""
+
+state: "present"
+
+grafana_users_allow_sign_up: false

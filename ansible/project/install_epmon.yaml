@@ -3,10 +3,9 @@
 #
 
 - name: Provision epmon
-  hosts: epmon
+  hosts: "{{ epmons_group_name }}:!disabled"
   become: true
   gather_facts: true
-  serial: 1
   roles:
-    - apimon_epmon
+    - epmon
   tags: epmon

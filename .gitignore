@@ -64,3 +64,5 @@ releasenotes/build
 **/artifacts
 ansible/env
 config.yaml
+git_repos
+_dashboards
