@@ -1,11 +1,11 @@
 ---
 # Playbook to start ApiMon Executors
 #
-- name: "Starting ApiMon Executors"
+- name: "Starting CloudMon - ApiMon Executors"
   hosts: "{{ executors_group_name }}:!disabled"
   become: true
   tasks:
     - name: Start apimon-executor
       ansible.builtin.service:
-        name: "apimon-executor"
+        name: "cloudmon-apimon-executor"
         state: "started"

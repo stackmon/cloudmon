@@ -1,11 +1,11 @@
 ---
 # Playbook to start ApiMon Schedulers
 #
-- name: "Starting ApiMon Schedulers"
+- name: "Starting CloudMon - ApiMon Schedulers"
   hosts: "{{ schedulers_group_name }}:!disabled"
   become: true
   tasks:
     - name: Start apimon-scheduler
       ansible.builtin.service:
-        name: "apimon-scheduler"
+        name: "cloudmon-apimon-scheduler"
         state: "started"

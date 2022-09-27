@@ -7,5 +7,5 @@
   tasks:
     - name: Start epmon
       ansible.builtin.service:
-        name: "apimon-epmon"
+        name: "cloudmon-epmon"
         state: "started"

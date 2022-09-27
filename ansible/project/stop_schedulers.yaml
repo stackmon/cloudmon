@@ -1,11 +1,11 @@
 ---
 # Playbook to stop ApiMon Schedulers
 #
-- name: "Stopping ApiMon Schedulers"
+- name: "Stopping CloudMon - ApiMon Schedulers"
   hosts: "{{ schedulers_group_name }}:!disabled"
   become: true
   tasks:
     - name: Stop apimon-scheduler
       ansible.builtin.service:
-        name: "apimon-scheduler"
+        name: "cloudmon-apimon-scheduler"
         state: "stopped"

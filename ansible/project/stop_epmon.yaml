@@ -1,11 +1,11 @@
 ---
 # Playbook to stop EpMon
 #
-- name: "Stopping EpMon"
+- name: "Stopping CloudMon - EpMon"
   hosts: "{{ epmons_group_name }}:!disabled"
   become: true
   tasks:
     - name: Stop epmon
       ansible.builtin.service:
-        name: "apimon-epmon"
+        name: "cloudmon-epmon"
         state: "stopped"
