@@ -44,7 +44,7 @@ cloudmon_plugins:
   epmon:
     type: epmon
     image: quay.io/opentelekomcloud/apimon:change_35_latest
-    config: sample_config_epmon.yaml
+    config: etc/sample_config_epmon.yaml
   lb:
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb
     init_image: quay.io/opentelekomcloud/cloudmon-plugin-lb-init
