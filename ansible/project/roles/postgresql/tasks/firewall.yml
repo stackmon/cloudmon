@@ -1,0 +1,10 @@
+---
+# Firewalld enablement
+
+- name: Allow pgsql port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "5432/tcp"
+    permanent: "yes"
+    immediate: "yes"

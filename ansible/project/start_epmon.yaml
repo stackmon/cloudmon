@@ -1,0 +1,11 @@
+---
+# Playbook to start EpMon
+#
+- name: "Starting EpMon"
+  hosts: "{{ epmons_group_name }}:!disabled"
+  become: true
+  tasks:
+    - name: Start epmon
+      ansible.builtin.service:
+        name: "cloudmon-epmon"
+        state: "started"

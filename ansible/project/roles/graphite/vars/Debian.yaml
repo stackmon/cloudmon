@@ -2,5 +2,6 @@
 packages:
   - docker.io
   - netcat
-
+  - cron
+  - apparmor-profiles
 container_command: docker

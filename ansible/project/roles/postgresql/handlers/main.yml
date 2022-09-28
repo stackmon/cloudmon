@@ -1,0 +1,10 @@
+---
+# handlers file for roles/postgresql
+
+- name: restart postgres
+  become: true
+  systemd:
+    name: "postgres.service"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes

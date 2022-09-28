@@ -1,0 +1,10 @@
+---
+# Firewalld enablement
+
+- name: Allow grafana port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "3000/tcp"
+    permanent: "yes"
+    immediate: "yes"

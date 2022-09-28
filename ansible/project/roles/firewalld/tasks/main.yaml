@@ -1,0 +1,62 @@
+- name: Include OS-specific variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - 'vars'
+
+- name: Install firewalld
+  ansible.builtin.package:
+    name: '{{ package_name }}'
+    state: present
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+
+- name: Enable services
+  ansible.posix.firewalld:
+    permanent: "yes"
+    service: "{{ item }}"
+    state: "enabled"
+  loop: "{{ firewalld_services_enable }}"
+  notify:
+    - Reload firewalld
+
+- name: Disable services
+  ansible.posix.firewalld:
+    permanent: "yes"
+    service: "{{ item }}"
+    state: "disabled"
+  loop: "{{ firewalld_services_disable }}"
+  notify:
+    - Reload firewalld
+
+- name: Enable ports
+  ansible.posix.firewalld:
+    permanent: "yes"
+    port: "{{ item }}"
+    state: "enabled"
+  loop: "{{ firewalld_ports_enable }}"
+  notify:
+    - Reload firewalld
+
+- name: Disable ports
+  ansible.posix.firewalld:
+    permanent: "yes"
+    port: "{{ item }}"
+    state: "disabled"
+  loop: "{{ firewalld_ports_disable }}"
+  notify:
+    - Reload firewalld
+
+- name: Disable iptables
+  ansible.builtin.service:
+    name: "iptables"
+    state: "stopped"
+    enabled: "false"
+  ignore_errors: "true"
+
+- name: Enable firewalld
+  ansible.builtin.service:
+    name: "firewalld"
+    state: "started"
+    enabled: "true"

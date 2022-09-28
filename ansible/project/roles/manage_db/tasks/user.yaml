@@ -1,0 +1,8 @@
+- name: Add user {{ user.name }} on {{ db.name }}
+  community.postgresql.postgresql_user:
+    db: "{{ db.name }}"
+    name: "{{ user.name }}"
+    password: "{{ user.password }}"
+    comment: "{{ user.comment | default(omit) }}"
+    login_host: "localhost"
+    login_password: "{{ postgres_root_password }}"

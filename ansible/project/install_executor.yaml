@@ -3,7 +3,7 @@
 #
 
 - name: Provision Executor
-  hosts: "{{ executors_group_name }}"
+  hosts: "{{ executors_group_name }}:!disabled"
   become: true
   gather_facts: true
   serial: 1

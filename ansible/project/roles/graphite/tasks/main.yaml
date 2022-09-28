@@ -19,6 +19,8 @@
   until: task_result is success
   retries: 5
 
+- include_tasks: firewall.yml
+
 - name: Create graphite sync group
   become: yes
   ansible.builtin.group:

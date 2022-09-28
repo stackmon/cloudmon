@@ -7,7 +7,7 @@ Restart=always
 TimeoutSec=600s
 User={{ executor_os_user }}
 Group={{ executor_os_group }}
-EnvironmentFile=/etc/apimon/env_executor
+EnvironmentFile={{ executor_env_path }}
 
 ExecStartPre=-{{ container_runtime }} system migrate
 ExecStartPre=-{{ container_runtime }} pull ${EXECUTOR_IMAGE}
@@ -24,7 +24,7 @@ ExecStart={{ container_runtime }} run \
   -v apimon_executor_lib:/var/lib/apimon:rw,Z \
   -v apimon_executor_home:/home/apimon:rw,Z \
   --tmpfs /tmp:rw \
-  ${EXECUTOR_IMAGE} executor --config {{ executor_config_dir}}/{{ executor_config_file_name }}
+  ${EXECUTOR_IMAGE} executor --config /etc/apimon/{{ executor_config_file_name }}
 
 ExecReload={{ container_runtime }} kill -s SIGHUP {{ executor_container_name }}
 

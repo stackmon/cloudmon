@@ -2,7 +2,7 @@
 # Playbook to install StatsD server
 #
 - name: Provision StatsD
-  hosts: "{{ statsd_hosts }}"
+  hosts: "{{ statsd_hosts }}:!disabled"
   become: true
   gather_facts: true
   roles:

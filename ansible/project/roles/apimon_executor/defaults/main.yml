@@ -5,17 +5,22 @@ distro_lookup_path:
   - "{{ ansible_facts.os_family }}.yaml"
   - "main.yaml"
 
-executor_os_group: "apimon"
-executor_os_user: "apimon"
-executor_systemd_service_name: "apimon-executor.service"
+executor_os_group: "cloudmon"
+executor_os_user: "cloudmon"
+executor_systemd_service_name: "cloudmon-apimon-executor.service"
 executor_systemd_unit_path: "{{ ('/etc/systemd/system/' + executor_systemd_service_name ) }}"
 executor_image: "quay.io/opentelekomcloud/apimon"
-executor_config_dir: "/etc/apimon"
+executor_config_dir: "/etc/cloudmon"
 executor_config_file_name: "apimon-executor.yaml"
+executor_config_path: "{{ executor_config_dir }}/{{ executor_config_file_name }}"
 executor_secure_config_file_name: "apimon-secure.yaml"
+executor_secure_config_path: "{{ executor_config_dir }}/{{ executor_secure_config_file_name }}"
+executor_env_file_name: "apimon_executor_env"
+executor_env_path: "{{ executor_config_dir }}/{{ executor_env_file_name }}"
+
 executor_config:
 executor_secure_config:
-executor_container_name: "apimon_executor"
+executor_container_name: "cloudmon_apimon_executor"
 
 container_command: "podman"
 container_runtime: "/usr/bin/{{ container_command }}"

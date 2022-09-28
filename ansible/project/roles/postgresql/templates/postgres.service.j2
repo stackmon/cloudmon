@@ -1,0 +1,32 @@
+[Unit]
+Description=PostgreSQL container
+Wants=syslog.service
+
+[Service]
+Type=simple
+TimeoutSec=30s
+Restart=always
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} rm "postgres"
+
+ExecStart={{ container_runtime }} run \
+    --name "postgres" \
+{% if container_command == 'podman' %}
+    --log-opt=path=/dev/null \
+{% endif %}
+    -p 5432:5432 \
+    -v postgresl_lib:/var/lib/postgresql/data \
+    # WARNING: for the tiny install we do not want to take overhead of doing it
+    # differently
+    -e POSTGRES_PASSWORD={{ postgres_root_password }} \
+    {{ postgres_image }}
+
+ExecReload=-{{ container_runtime }} stop "postgres"
+ExecReload=-{{ container_runtime }} rm "postgres"
+
+ExecStop={{ container_runtime }} stop "postgres"
+ExecStop={{ container_runtime }} rm "postgres"
+
+[Install]
+WantedBy=multi-user.target

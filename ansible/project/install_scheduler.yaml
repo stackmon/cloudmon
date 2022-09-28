@@ -2,11 +2,12 @@
 # Playbook to install ApiMon Schedulers
 #
 - name: Provision ApiMon Schedulers
-  hosts: "{{ schedulers_group_name }}"
+  hosts: "{{ schedulers_group_name }}:!disabled"
   become: true
   gather_facts: true
   serial: 1
   roles:
+    - firewalld
     - apimon_scheduler
   tasks:
   tags: apimon_scheduler

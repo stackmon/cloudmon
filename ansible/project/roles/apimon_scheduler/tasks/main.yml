@@ -60,7 +60,7 @@
   become: true
   ansible.builtin.template:
     src: "env_scheduler"
-    dest: "{{ scheduler_config_dir }}/env_scheduler"
+    dest: "{{ scheduler_env_path }}"
     group: "{{ scheduler_os_group }}"
     owner: "{{ scheduler_os_user }}"
     mode: "0644"

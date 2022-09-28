@@ -38,7 +38,7 @@
 - name: Write epmon SystemD unit file
   become: true
   ansible.builtin.template:
-    src: "apimon-epmon.service.j2"
+    src: "epmon.service.j2"
     dest: "{{ epmon_systemd_unit_path }}"
   notify:
     - Restart epmon
@@ -58,7 +58,7 @@
   become: true
   ansible.builtin.template:
     src: "env_epmon"
-    dest: "{{ epmon_config_dir }}/env_epmon"
+    dest: "{{ epmon_env_path }}"
     owner: "{{ epmon_os_user }}"
     group: "{{ epmon_os_group }}"
     mode: "0644"
@@ -80,7 +80,7 @@
   become: true
   ansible.builtin.copy:
     content: "{{ epmon_config | to_nice_yaml(indent=2, width=79) }}"
-    dest: "{{ epmon_config_dir }}/{{ epmon_config_file_name }}"
+    dest: "{{ epmon_config_path }}"
     group: "{{ epmon_os_group }}"
     owner: "{{ epmon_os_user }}"
     mode: "0644"
@@ -93,7 +93,7 @@
   become: true
   ansible.builtin.copy:
     content: "{{ epmon_secure_config | to_nice_yaml(indent=2, width=79) }}"
-    dest: "{{ epmon_config_dir }}/{{ epmon_secure_config_file_name }}"
+    dest: "{{ epmon_secure_config_path }}"
     group: "{{ epmon_os_group }}"
     owner: "{{ epmon_os_user }}"
     mode: "0644"

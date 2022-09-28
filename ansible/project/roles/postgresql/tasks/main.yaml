@@ -1,0 +1,47 @@
+---
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- include_tasks: firewall.yml
+
+- name: Write Postgres Systemd unit file
+  become: true
+  template:
+    src: "postgres.service.j2"
+    dest: "/etc/systemd/system/postgres.service"
+    mode: "0644"
+  notify:
+    - restart postgres
+
+- name: Force all notified handlers to run at this point, not waiting for normal sync points
+  meta: flush_handlers
+
+- name: Make sure the Postgres service started
+  become: true
+  systemd:
+    state: started
+    name: "postgres.service"
+
+- name: Wait for postgres container to listen
+  become: true
+  wait_for:
+    host: 0.0.0.0
+    port: 5432
+    timeout: 120
