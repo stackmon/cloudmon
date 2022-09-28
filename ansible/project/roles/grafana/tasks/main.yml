@@ -63,7 +63,7 @@
   template:
     src: "grafana-renderer.service.j2"
     dest: "/etc/systemd/system/grafana-renderer.service"
-  when: 
+  when:
     - "grafana_enable_renderer is defined"
     - "grafana_enable_renderer"
   notify:
@@ -86,9 +86,18 @@
     state: started
     name: "grafana.service"
 
-- name: Wait for grafana container to listen 
+- name: Wait for grafana container to listen
   become: true
   wait_for:
     host: 0.0.0.0
     port: 3000
     timeout: 120
+
+- name: Wait for api/health to come up
+  uri:
+    url: "http://0.0.0.0:3000/api/health"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 1
