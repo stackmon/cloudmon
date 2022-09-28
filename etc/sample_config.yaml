@@ -1,0 +1,141 @@
+%YAML 1.2
+---
+monitoring_zones: # Defining from where we are monitoring
+  internal:
+    graphite_group_name: graphite
+    statsd_group_name: statsd
+    #  external:
+    #    graphite_group_name: graphite
+    #    statsd_group_name: statsd
+
+environments: # What we monitor and which credentials to use from every monitoring location (zone)
+  # NOTE: not allowed to use same cloud names in same zone for different envs
+  production:
+    env:
+      OS_CLOUD: production
+    monitoring_zones:
+      internal:
+        clouds:
+          - name: production
+            ref: p1
+          - name: swift
+            ref: swift1
+      external:
+        clouds:
+          - name: production
+            ref: p2
+          - name: swift
+            ref: swift1
+
+# Known CloudMon plugins with their basic settings
+cloudmon_plugins:
+  apimon:
+    type: apimon
+    scheduler_image: quay.io/opentelekomcloud/apimon:change_35_latest
+    executor_image: quay.io/opentelekomcloud/apimon:change_35_latest
+    epmon_image: quay.io/opentelekomcloud/apimon:change_35_latest
+    tests_projects:
+      - name: apimon
+        repo_url: https://github.com/stackmon/apimon-tests
+        repo_ref: main
+        exec_cmd: ansible-playbook -i inventory/production %s -vvv
+        scenarios_location: playbooks
+        grafana_dashboards_location: dashboards
+  epmon:
+    type: epmon
+    image: quay.io/opentelekomcloud/apimon:change_35_latest
+    config: sample_config_epmon.yaml
+  lb:
+    image: quay.io/opentelekomcloud/cloudmon-plugin-lb
+    init_image: quay.io/opentelekomcloud/cloudmon-plugin-lb-init
+
+graphite:
+  host: localhost
+
+database:
+  root_password: ChangeMe123$
+  databases:
+    - name: grafana
+      users:
+        - name: grafana
+          password: &grafana_database_password ChangeMe!123$
+    - name: apimon
+      users:
+        - name: apimon
+          password: &apimon_database_password ChangeMe!123$
+
+grafana:
+  datasources:
+    - name: cloudmon
+      type: graphite
+    - name: apimon_db
+      type: postgres
+      database: apimon
+      user: apimon
+      jsonData:
+        postgresVersion: 14
+        sslmode: disable
+      secureJsonData:
+        password: *apimon_database_password
+  config:
+    grafana_image: quay.io/opentelekomcloud/grafana:9.1.5
+    grafana_renderer_image: quay.io/opentelekomcloud/grafana-image-renderer:3.6.1
+    grafana_security_admin_password: fake_password_change_me
+    grafana_enable_renderer: 'true'
+    grafana_grafana_host: grafana
+    grafana_renderer_host: renderer
+    grafana_database_type: postgres
+    grafana_database_name: grafana
+    grafana_database_user: grafana
+    grafana_database_password: *grafana_database_password
+  dashboards:
+    - name: main
+      repo_url: https://github.com/stackmon/apimon-tests.git
+      repo_ref: main
+      path: dashboards/grafana
+
+matrix:
+  # Mapping of environments to test projects
+  # Regular apimon project in env ext
+  - env: production
+    monitoring_zone: internal
+    # TODO: placing db_url here feels questionable
+    # db_url or db_entry as ref to database.databases
+    db_entry: apimon.apimon
+    plugins:
+      - name: apimon
+        schedulers_inventory_group_name: schedulers
+        executors_inventory_group_name: executors
+        #epmons_inventory_group_name: epmons
+        tests_project: apimon
+        tasks:
+          - scenario1_token.yaml
+      - name: epmon
+        epmons_inventory_group_name: epmons
+        cloud_name: production # env in zone has few creds. We need to pick one
+        config_elements:
+          - compute
+          - dns
+          - identity
+          - image
+          - network
+          - object_store
+          - orchestration
+          - volume
+
+clouds_credentials:
+  p1:
+    auth:
+      auth_url: https://fake.com
+      username: fake_user
+      password: fake_pass
+      project_name: fake_project
+      user_domain_name: fake_domain
+  swift1:
+    profile: otc
+    auth:
+      auth_url: https://fake.com
+      username: fake_user
+      password: fake_pass
+      project_name: fake_project
+      user_domain_name: fake_domain

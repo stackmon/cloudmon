@@ -1,0 +1,12 @@
+---
+- hosts: all
+  roles:
+    - copy-build-sshkey
+    - multi-node-known-hosts
+    - multi-node-hosts-file
+
+- hosts: controller
+  roles:
+    - ensure-python
+    - ensure-pip
+    - ensure-virtualenv
