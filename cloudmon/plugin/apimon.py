@@ -52,7 +52,12 @@ class ApiMonManager:
         self.process_config()
 
     def process_config(self):
-        """Process every individual matrix entry and configure components correspondingly"""
+        """Process config
+
+        Process every individual matrix entry and configure components
+        correspondingly
+
+        """
         for matrix_entry in self.config.config["matrix"]:
             logging.debug("Processing %s", matrix_entry)
             for plugin in matrix_entry["plugins"]:
@@ -215,7 +220,8 @@ class ApiMonManager:
                 ansible_check_mode=check,
                 scheduler_config_dir="/etc/cloudmon",
                 scheduler_config_file_name="apimon-scheduler.yaml",
-                scheduler_secure_config_file_name="apimon-scheduler-secure.yaml",
+                scheduler_secure_config_file_name=(
+                    "apimon-scheduler-secure.yaml"),
                 schedulers_group_name=apimon_config.schedulers_group_name,
             )
             if apimon_config.scheduler_image:

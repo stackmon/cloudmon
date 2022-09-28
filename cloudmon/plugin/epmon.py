@@ -43,7 +43,11 @@ class EpmonManager:
         self.process_config()
 
     def process_config(self):
-        """Process every individual matrix entry and configure components correspondingly"""
+        """Process config
+
+        Process every individual matrix entry and configure
+        components correspondingly
+        """
         for matrix_entry in self.config.config["matrix"]:
             logging.debug("Processing %s", matrix_entry)
             for plugin in matrix_entry["plugins"]:
@@ -78,7 +82,8 @@ class EpmonManager:
                 config = yaml.load(f)
 
         services = dict()
-        # Find requested config elements to know which services we want to watch in this env
+        # Find requested config elements to know which services we want to
+        # watch in this env
         for config_element_ref in plugin.get("config_elements", []):
             if config_element_ref in config["elements"]:
                 config_element = config["elements"][config_element_ref]

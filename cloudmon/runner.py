@@ -12,7 +12,6 @@
 # limitations under the License.
 
 import argparse
-import copy
 import logging
 import sys
 
@@ -22,10 +21,9 @@ from ruamel.yaml import YAML
 from cloudmon.plugin import apimon
 from cloudmon.plugin import epmon
 from cloudmon.service import grafana
-from cloudmon.service import statsd
 from cloudmon.service import sqldb
+from cloudmon.service import statsd
 from cloudmon.service import tsdb
-from cloudmon import utils
 
 
 COMMAND_CHOICES = ["configure", "stop", "start"]
@@ -40,9 +38,13 @@ class CloudMonConfig:
         self.private_data_dir = None
         self.default_extravars = dict(
             distro_lookup_path=[
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.{{ ansible_facts.architecture }}.yaml",
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.lsb.codename|default() }}.yaml",
-                "{{ ansible_facts.distribution }}.{{ ansible_facts.architecture }}.yaml",
+                ("{{ ansible_facts.distribution }}"
+                 ".{{ ansible_facts.lsb.codename|default() }}"
+                 ".{{ ansible_facts.architecture }}.yaml"),
+                ("{{ ansible_facts.distribution }}"
+                 ".{{ ansible_facts.lsb.codename|default() }}.yaml"),
+                ("{{ ansible_facts.distribution }}"
+                 ".{{ ansible_facts.architecture }}.yaml"),
                 "{{ ansible_facts.distribution }}.yaml",
                 "{{ ansible_facts.os_family }}.yaml",
                 "default.yaml",
@@ -158,6 +160,7 @@ class CloudMonProvision(CloudMonCommand):
                 logging.debug("Provisionings EpMon")
                 manager = epmon.EpmonManager(config)
                 manager.provision(args.check)
+
 
 class CloudMonStop(CloudMonCommand):
     @classmethod

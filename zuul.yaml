@@ -1,19 +1,9 @@
 - project:
     merge-mode: squash-merge
-    default-branch: master
-    templates:
-      - publish-to-pypi
-      - publish-otc-docs-hc-pti
-      - release-notes-jobs
+    default-branch: main
     check:
       jobs:
         - otc-tox-pep8
-        - otc-tox-py38
-        - otc-tox-py39
-        - tox-functional
     gate:
       jobs:
         - otc-tox-pep8
-        - otc-tox-py38
-        - otc-tox-py39
-        - tox-functional

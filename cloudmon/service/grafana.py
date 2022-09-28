@@ -62,48 +62,6 @@ class GrafanaManager:
     def provision_ds(self, config, check):
         logging.debug("Configuring Grafana datasources")
         grafana_config = config.config["grafana"]
-        # carbon = grafana_config.get("carbon", {})
-        # if "url" not in carbon:
-        #     graphite_host = config.inventory["graphite"]["hosts"][0]
-        #     graphite_host_vars = config.inventory["_meta"]["hostvars"][
-        #         graphite_host
-        #     ]
-        #     graphite_ip = graphite_host_vars.get("ansible_host", graphite_host)
-        #     carbon["url"] = f"http://{graphite_ip}"
-
-        # ds_body = dict(
-        #     access="proxy",
-        #     name="cloudmon",
-        #     type="graphite",
-        # )
-        # ds_body.update(carbon)
-        # response = self.request(
-        #     method="GET", url="/api/datasources/name/cloudmon"
-        # )
-
-        # if response.status_code == 200:
-        #     # Update DS
-        #     response = self.request(
-        #         method="PUT",
-        #         url=f"/api/datasources/{response.json()['id']}",
-        #         json=ds_body,
-        #     )
-        # elif response.status_code == 404:
-        #     # Create DS
-        #     response = self.request(
-        #         method="POST", url="/api/datasources", json=ds_body
-        #     )
-        # else:
-        #     raise RuntimeError(
-        #         f"Error checking datasources in Grafana: " f"{response.text}"
-        #     )
-
-        # if response.status_code != 200:
-        #     raise RuntimeError(
-        #         f"Error configuring datasources in Grafana: "
-        #         f"{response.text}"
-        #     )
-
         for ds in grafana_config.get("datasources"):
             port = ds.pop("port", None)
             ds_body = dict(
