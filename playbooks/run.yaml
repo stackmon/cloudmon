@@ -1,0 +1,12 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+      when: "ansible_pkg_mgr == 'apt'"
+
+- hosts: controller
+  roles:
+    - install_cloudmon
+    - deploy_cloudmon

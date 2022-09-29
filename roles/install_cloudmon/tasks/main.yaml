@@ -1,0 +1,9 @@
+- name: Initialize venv
+  ansible.builtin.pip:
+    name: "pip"
+    virtualenv: "{{ cloudmon_venv_path | default(omit, true) }}"
+
+- name: Install CloudMon
+  ansible.builtin.pip:
+    name: "{{ ansible_user_dir }}/{{ zuul_work_dir }}/"
+    virtualenv: "{{ cloudmon_venv_path | default(omit, true) }}"

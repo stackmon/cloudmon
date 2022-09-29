@@ -1,0 +1,67 @@
+---
+# monitoring elements
+elements:
+  compute:
+    service_type: compute
+    urls:
+    - /
+    - /servers
+    - /flavors
+    - /limits
+    - /os-keypairs
+    - /os-server-groups
+    - /os-availability-zone
+  dns:
+    service_type: dns
+    urls:
+    - /
+    - /zones
+    - /recordsets
+    - /reverse/floatingips
+  identity:
+    service_type: identity
+    urls:
+    - /
+    - /regions
+    - /auth/projects
+  image:
+    service_type: image
+    urls:
+    - /
+    - /images
+    - /schemas/images
+  network:
+    service_type: network
+    urls:
+    - /
+    - /networks
+    - /subnets
+    - /ports
+    - /routers
+    - /floatingips
+    - /security-groups
+    - /subnetpools
+  object_skip:
+    service_type: object
+  object_store:
+    service_type: object-store
+    sdk_proxy: object_store
+    urls:
+    - /
+    - /info
+  orchestration:
+    service_type: orchestration
+    urls:
+    - /stacks
+    - /build_info
+    - /software_configs
+    - /resource_types
+  volume:
+    service_type: volumev3
+    sdk_proxy: block_storage
+    urls:
+    - /volumes
+    - /snapshots
+    - /backups
+    - /os-volume-transfer
+    - /os-availability-zone

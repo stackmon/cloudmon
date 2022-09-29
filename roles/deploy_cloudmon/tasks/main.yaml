@@ -1,0 +1,10 @@
+- name: Make inventory
+  ansible.builtin.template:
+    dest: "{{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory"
+    src: "inventory.j2"
+
+- name: Deploy
+  args:
+    chdir: "{{ ansible_user_dir }}/{{ zuul_work_dir }}"
+    executable: "/bin/bash"
+  ansible.builtin.shell: "source {{ cloudmon_venv_path }}/bin/activate; cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory provision"

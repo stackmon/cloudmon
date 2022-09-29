@@ -1,9 +1,30 @@
+- job:
+    name: cloudmon-deploy
+    abstract: true
+    description: |
+      Deploy CloudMon
+    pre-run: playbooks/pre.yaml
+    run: playbooks/run.yaml
+    vars:
+      python_version: "3.10"
+
+- job:
+    name: cloudmon-deploy-ubuntu-jammy
+    parent: cloudmon-deploy
+    nodeset:
+      nodes:
+        - name: controller
+          label: ubuntu-jammy
+        - name: worker
+          label: ubuntu-jammy
+
 - project:
     merge-mode: squash-merge
     default-branch: main
     check:
       jobs:
         - otc-tox-pep8
+        - cloudmon-deploy-ubuntu-jammy
     gate:
       jobs:
         - otc-tox-pep8

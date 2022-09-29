@@ -1,0 +1,2 @@
+zuul_work_dir: "{{ zuul.project.src_dir }}"
+cloudmon_venv_path: "{{ ansible_user_dir }}/.venv"

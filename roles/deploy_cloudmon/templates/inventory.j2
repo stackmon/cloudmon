@@ -1,12 +1,8 @@
 all:
   hosts:
-    # Replace with your host IP address
-    #server1:
-    #  ansible_host: A.B.C.D
-    #  ansible_user: ubuntu
-    # Since components want to talk to each other using internal network -
-    # define this
-    #  internal_address: 192.168.0.2
+    worker: 
+      ansible_host: "{{ hostvars['worker'].ansible_host }}"
+      internal_address: "{{ hostvars['worker'].ansible_host }}"
   children:
     statsd:
       hosts:
