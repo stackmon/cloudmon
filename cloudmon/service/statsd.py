@@ -45,6 +45,7 @@ class StatsdManager:
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="install_statsd.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,

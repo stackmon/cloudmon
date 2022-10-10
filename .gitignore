@@ -62,6 +62,7 @@ releasenotes/build
 
 # CloudMon specifics
 **/artifacts
+.cloudmon_artifact
 ansible/env
 config.yaml
 git_repos

@@ -35,6 +35,7 @@ class PostgreSQLManager:
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="install_postgresql.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -56,6 +57,7 @@ class PostgreSQLManager:
 
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="manage_databases.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,

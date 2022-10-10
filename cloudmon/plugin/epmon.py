@@ -158,6 +158,7 @@ class EpmonManager:
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="install_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -178,6 +179,7 @@ class EpmonManager:
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="stop_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -198,6 +200,7 @@ class EpmonManager:
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="start_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
