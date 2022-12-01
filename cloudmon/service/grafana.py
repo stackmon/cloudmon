@@ -246,6 +246,7 @@ class GrafanaManager:
 
         r = ansible_runner.run(
             private_data_dir=config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="install_grafana.yaml",
             inventory=config.inventory_path,
             extravars=extravars,

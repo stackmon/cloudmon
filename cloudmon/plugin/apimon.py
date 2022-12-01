@@ -256,6 +256,7 @@ class ApiMonManager:
 
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="install_scheduler.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -306,6 +307,7 @@ class ApiMonManager:
 
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
+                artifact_dir=".cloudmon_artifact",
                 playbook="install_executor.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -345,6 +347,7 @@ class ApiMonManager:
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="stop_schedulers.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -364,6 +367,7 @@ class ApiMonManager:
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="stop_executors.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -383,6 +387,7 @@ class ApiMonManager:
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="start_schedulers.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -402,6 +407,7 @@ class ApiMonManager:
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
+            artifact_dir=".cloudmon_artifact",
             playbook="start_executors.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,

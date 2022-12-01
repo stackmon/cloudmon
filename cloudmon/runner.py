@@ -12,7 +12,9 @@
 # limitations under the License.
 
 import argparse
+import importlib.resources
 import logging
+import pathlib
 import sys
 
 import ansible_runner
@@ -218,7 +220,9 @@ class CloudMon:
         parser.add_argument(
             "--private-data-dir",
             dest="private_data_dir",
-            default="ansible",
+            default=pathlib.Path(
+                importlib.resources.files("cloudmon"),
+                "ansible"),
             help="Ansible-runner project dir",
         )
         parser.add_argument(
@@ -263,6 +267,9 @@ class CloudMon:
         yaml = YAML()
         with open(self.args.config, "r") as f:
             self.config = yaml.load(f)
+
+        self.args.inventory = pathlib.Path(
+            self.args.inventory).resolve().as_posix()
 
         out, err = ansible_runner.get_inventory(
             action="list",
