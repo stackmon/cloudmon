@@ -1,0 +1,26 @@
+---
+# handlers file for roles/postgresql
+
+- name: Restart postgres
+  become: true
+  throttle: 1
+  ansible.builtin.systemd:
+    name: "postgres.service"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: Restart haproxy
+  become: true
+  ansible.builtin.systemd:
+    name: "postgres-haproxy.service"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+# Need to reload firewalld after zone creation
+- name: Reload firewalld
+  become: true
+  ansible.builtin.systemd:
+    name: "firewalld"
+    state: "reloaded"

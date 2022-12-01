@@ -1,0 +1,11 @@
+[Unit]
+Description=Runs carbonapi healthcheck every 1 minutes
+Requires=carbonapi-healthcheck.service
+
+[Timer]
+Unit=carbonapi-healthcheck.service
+OnUnitInactiveSec=1m
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

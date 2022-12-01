@@ -1,0 +1,38 @@
+[Unit]
+Description=Patroni - PostgreSQL container
+Wants=syslog.service
+
+[Service]
+Type=simple
+TimeoutSec=240s
+Restart=always
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} rm "postgres"
+ExecStartPre=mkdir -p /var/lib/postgresql/ssl
+ExecStartPre=cp /etc/ssl/{{ inventory_hostname}}/db-fullchain.crt /var/lib/postgresql/ssl/server.crt
+ExecStartPre=cp /etc/ssl/{{ inventory_hostname}}/db.pem /var/lib/postgresql/ssl/server.key
+ExecStartPre=chown -R 999:999 /var/lib/postgresql/ssl
+
+ExecStart={{ container_runtime }} run \
+    --name "postgres" \
+{% if container_command == 'podman' %}
+    --log-opt=path=/dev/null \
+{% endif %}
+    -p 5432:5432 \
+    -p 8008:8008 \
+    -v /var/lib/postgresql/data:/var/lib/postgresql/data:rw,Z \
+    -v /var/lib/postgresql/ssl:/var/lib/postgresql/ssl:ro,Z \
+    -v /var/lib/postgresql/patroni:/var/lib/patroni:rw,Z \
+    -v /etc/postgres/patroni.yaml:/home/postgres/patroni.yml:ro \
+    -v /etc/postgres/ssl:/etc/ssl/private:ro,z \
+    {{ postgres_image }}
+
+ExecReload=-{{ container_runtime }} stop "postgres"
+ExecReload=-{{ container_runtime }} rm "postgres"
+
+ExecStop={{ container_runtime }} stop "postgres"
+ExecStop={{ container_runtime }} rm "postgres"
+
+[Install]
+WantedBy=multi-user.target

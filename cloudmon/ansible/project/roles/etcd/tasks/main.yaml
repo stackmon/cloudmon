@@ -1,0 +1,75 @@
+---
+- name: Include variables
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- name: Construct cluster nodes list
+  ansible.builtin.set_fact:
+    etcd_cluster: "{{ (etcd_cluster|default([])) + [(item + '=https://' + hostvars[item]['internal_address'] + ':2380')] }}"
+  loop: "{{ play_hosts }}"
+
+- ansible.builtin.include_tasks: firewall.yml
+
+- name: Ensure directories exist
+  become: true
+  ansible.builtin.file:
+    state: "directory"
+    path: "{{ item.path }}"
+    mode: "{{ item.mode | default('0755') }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop:
+    - path: "/var/lib/etcd"
+      mode: "0700"
+      owner: "root"
+      group: "root"
+
+- name: Write SSL files
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+  loop:
+    - src: "{{ certs_path }}/ca/ca.pem"
+      dest: "/etc/ssl/private/ca.pem"
+    - src: "{{ certs_path }}/certs/{{ inventory_hostname }}.pem"
+      dest: "/etc/ssl/private/host.crt"
+    - src: "{{ certs_path }}/keys/{{ inventory_hostname }}.pem"
+      dest: "/etc/ssl/private/host.key"
+  notify:
+    - Restart etcd
+
+- name: Write ETCD Systemd unit file
+  become: true
+  ansible.builtin.template:
+    src: "etcd.service.j2"
+    dest: "/etc/systemd/system/etcd.service"
+    mode: "0644"
+  notify:
+    - Restart etcd
+
+- name: Force all notified handlers to run at this point
+  meta: flush_handlers
+
+- name: Make sure the ETCD service started
+  become: true
+  ansible.builtin.systemd:
+    state: "started"
+    name: "etcd.service"

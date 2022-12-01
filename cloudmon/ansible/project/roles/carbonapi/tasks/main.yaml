@@ -1,0 +1,88 @@
+---
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- name: Ensure directories exist
+  become: true
+  ansible.builtin.file:
+    state: "directory"
+    path: "{{ item }}"
+    mode: "0755"
+  loop:
+    - "{{ graphite_config_location }}"
+    - "{{ graphite_config_location }}/ssl"
+    - "/var/log/graphite"
+    - "/root/bin"
+
+- name: Write config files
+  become: true
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ graphite_config_location }}//{{ item }}"
+    mode: "0644"
+  loop:
+    - "carbonapi.yaml"
+  notify:
+    - Restart carbonapi
+
+- name: Write Carbonapi Systemd unit files
+  become: true
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: "carbonapi.service.j2"
+      dest: "/etc/systemd/system/carbonapi.service"
+    - src: "carbonapi-watcher.service.j2"
+      dest: "/etc/systemd/system/carbonapi-watcher.service"
+    - src: "carbonapi-watcher.path.j2"
+      dest: "/etc/systemd/system/carbonapi-watcher.path"
+  notify:
+    - Restart carbonapi
+
+- name: Write Carbonapi-healthcheck Systemd unit files
+  become: true
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  loop:
+    - src: "carbonapi-healthcheck.service.j2"
+      dest: "/etc/systemd/system/carbonapi-healthcheck.service"
+    - src: "carbonapi-healthcheck.service.j2"
+      dest: "/etc/systemd/system/carbonapi-healthcheck.service"
+    - src: "carbonapi-healthcheck.timer.j2"
+      dest: "/etc/systemd/system/carbonapi-healthcheck.timer"
+  notify:
+    - Restart carbonapi-healthcheck
+
+- name: Write carbonapi-healthcheck script
+  become: true
+  ansible.builtin.template:
+    src: "carbonapi-healthcheck.sh.j2"
+    dest: "/root/bin/carbonapi-healthcheck.sh"
+    mode: "0744"
+
+- name: Set proper selinux context for executable file
+  become: true
+  community.general.sefcontext:
+    target: "/root/bin/carbonapi-healthcheck.sh.j2"
+    setype: bin_t
+    state: present
+  when: ansible_facts.selinux.status == 'enabled'

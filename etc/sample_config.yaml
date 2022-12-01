@@ -1,7 +1,7 @@
 %YAML 1.2
 ---
 monitoring_zones: # Defining from where we are monitoring
-  internal:
+  - name: internal
     graphite_group_name: graphite
     statsd_group_name: statsd
     #  external:
@@ -10,17 +10,17 @@ monitoring_zones: # Defining from where we are monitoring
 
 environments: # What we monitor and which credentials to use from every monitoring location (zone)
   # NOTE: not allowed to use same cloud names in same zone for different envs
-  production:
+  - name: production
     env:
       OS_CLOUD: production
     monitoring_zones:
-      internal:
+      - name: internal
         clouds:
           - name: production
             ref: p1
           - name: swift
             ref: swift1
-      external:
+      - name: external
         clouds:
           - name: production
             ref: p2
@@ -28,8 +28,8 @@ environments: # What we monitor and which credentials to use from every monitori
             ref: swift1
 
 # Known CloudMon plugins with their basic settings
-cloudmon_plugins:
-  apimon:
+plugins:
+  - name: apimon
     type: apimon
     scheduler_image: quay.io/opentelekomcloud/apimon:change_35_latest
     executor_image: quay.io/opentelekomcloud/apimon:change_35_latest
@@ -41,11 +41,12 @@ cloudmon_plugins:
         exec_cmd: ansible-playbook -i inventory/production %s -vvv
         scenarios_location: playbooks
         grafana_dashboards_location: dashboards
-  epmon:
+  - name: epmon
     type: epmon
     image: quay.io/opentelekomcloud/apimon:change_35_latest
     config: etc/sample_config_epmon.yaml
-  lb:
+  - name: lb
+    type: general
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb
     init_image: quay.io/opentelekomcloud/cloudmon-plugin-lb-init
 
@@ -53,7 +54,11 @@ graphite:
   host: localhost
 
 database:
-  root_password: ChangeMe123$
+  # using ha_mode (patroni) requires having multiple hosts in the postgres
+  # group. For now it is disabled since there is certain instability in the
+  # setup.
+  # ha_mode: true
+  postgres_postgres_password: ChangeMe123$
   databases:
     - name: grafana
       users:
@@ -124,14 +129,14 @@ matrix:
           - volume
 
 clouds_credentials:
-  p1:
+  - name: p1
     auth:
       auth_url: https://fake.com
       username: fake_user
       password: fake_pass
       project_name: fake_project
       user_domain_name: fake_domain
-  swift1:
+  - name: swift1
     profile: otc
     auth:
       auth_url: https://fake.com

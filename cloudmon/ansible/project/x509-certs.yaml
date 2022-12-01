@@ -1,0 +1,13 @@
+- hosts: localhost
+  tasks:
+    - ansible.builtin.include_role:
+        name: "x509_cert"
+        tasks_from: "ca.yaml"
+
+    - ansible.builtin.include_role:
+        name: "x509_cert"
+        tasks_from: "cert.yaml"
+      vars:
+        x509_common_name: "{{ item.cn }}"
+        x509_alt_name: "{{ item.alt_name | default(None) }}"
+      loop: "{{ x509_certificates }}"

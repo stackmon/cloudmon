@@ -8,8 +8,10 @@
 
 - name: Install firewalld
   ansible.builtin.package:
-    name: '{{ package_name }}'
-    state: present
+    name: "{{ item }}"
+    state: "present"
+  loop:
+    - "{{ packages }}"
   when: "ansible_facts.pkg_mgr != 'atomic_container'"
 
 - name: Enable services

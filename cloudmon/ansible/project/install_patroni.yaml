@@ -1,0 +1,9 @@
+---
+- name: Provision HA PostgreSQL cluster managed by Patroni
+  hosts: "patroni:!disabled"
+  become: true
+  gather_facts: true
+  roles:
+    - firewalld
+    - patroni
+  tags: [patroni]

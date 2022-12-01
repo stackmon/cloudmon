@@ -15,9 +15,27 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from pathlib import Path
+import tempfile
 from unittest import TestCase
+
+from cloudmon.config import CloudMonConfig
 
 
 class TestCase(TestCase):
 
     """Test case base class for all unit tests."""
+
+    def get_config(self, content, inventory=None):
+        config = CloudMonConfig()
+        with tempfile.NamedTemporaryFile() as cfg:
+            cfg.write(content.encode())
+            cfg.seek(0)
+            config.parse(cfg.name)
+        if inventory:
+            with tempfile.NamedTemporaryFile() as fp:
+                fp.write(inventory.encode())
+                fp.seek(0)
+                config.process_inventory(Path(fp.name).resolve())
+
+        return config

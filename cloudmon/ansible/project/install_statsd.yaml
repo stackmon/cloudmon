@@ -6,6 +6,7 @@
   become: true
   gather_facts: true
   roles:
+    - firewalld
     - statsd
   tasks:
   tags: statsd

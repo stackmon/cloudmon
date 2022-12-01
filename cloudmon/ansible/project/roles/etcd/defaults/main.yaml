@@ -1,0 +1,11 @@
+---
+container_runtime: "/usr/bin/{{ container_command }}"
+
+packages: []
+
+etcd_image: "quay.io/coreos/etcd:latest"
+etcd_cluster_name: "etcd"
+etcd_cluster_state: "new"
+etcd_cluster_token: "new-cluster-token"
+
+state: "present"

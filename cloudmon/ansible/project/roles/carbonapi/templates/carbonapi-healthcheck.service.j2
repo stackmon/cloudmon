@@ -1,0 +1,9 @@
+[Unit]
+Description=Runs carbonapi healthcheck service and restarts carbonapi when it does not respond
+Wants=carbonapi-healthcheck.timer
+
+[Service]
+ExecStart=/root/bin/carbonapi-healthcheck.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -9,16 +9,17 @@ ExecStartPre=-{{ container_runtime }} rm graphite
 
 ExecStart={{ container_runtime }} run \
     --name graphite \
-    --network host \
     --env-file /etc/graphite/env \
+    -p 2003-2004:2003-2004 \
+    -p 2014:2014 \
+    -p 2023-2024:2023-2024 \
+    -p 8081:8081 \
 {% if container_command == 'podman' %}
     --log-opt=path=/dev/null \
 {% endif %}
 {% if graphite_cert is defined %}
-    -v /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.pem:/etc/ssl/{{
-    inventory_hostname }}/{{ graphite_cert }}.pem:ro,z \
-    -v /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.crt:/etc/ssl/{{
-    inventory_hostname }}/{{ graphite_cert }}.crt:ro,z \
+    -v {{ graphite_ssl_cert }}:/etc/ssl/private/graphite.crt:ro,z \
+    -v {{ graphite_ssl_key }}:/etc/ssl/private/graphite.key:ro,z \
 {% endif %}
     -v /etc/graphite/carbon.conf:/opt/graphite/conf/carbon.conf:ro \
     -v /etc/graphite/go-carbon.conf:/opt/graphite/conf/go-carbon.conf:ro \

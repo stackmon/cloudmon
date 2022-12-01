@@ -6,3 +6,15 @@
     comment: "{{ user.comment | default(omit) }}"
     login_host: "localhost"
     login_password: "{{ postgres_root_password }}"
+    port: "{{ postgres_port | default(omit) }}"
+
+- name: Grant user {{ user.name }}
+  community.postgresql.postgresql_privs:
+    db: "{{ db.name }}"
+    privs: "ALL"
+    type: "schema"
+    objs: "public"
+    role: "{{ user.name }}"
+    login_host: "localhost"
+    login_password: "{{ postgres_root_password }}"
+    port: "{{ postgres_port | default(omit) }}"

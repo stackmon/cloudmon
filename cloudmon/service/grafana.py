@@ -32,6 +32,8 @@ class GrafanaSession(requests.Session):
 
 
 class GrafanaManager:
+    log = logging.getLogger(__name__)
+
     def __init__(self, cloudmon_config, api_url, api_token):
         self.config = cloudmon_config
         self.base_url = api_url
@@ -48,6 +50,7 @@ class GrafanaManager:
         return self._session.request(method, url, *args, **kwargs)
 
     def ensure_folder(self, uid, title, **kwargs):
+        logging.debug("Verifying Grafana folder existence")
         response = self.request(method="GET", url=f"/api/folders/{uid}")
         if response.status_code == 404:
             response = self.request(
@@ -55,14 +58,19 @@ class GrafanaManager:
                 url="/api/folders",
                 json=dict(uid=uid, title=title, **kwargs),
             )
+        if response.status_code != 200:
+            raise RuntimeError(
+                "Error creating folder %s: %s" % (title, response.text)
+            )
         folder = response.json()
 
         return folder
 
-    def provision_ds(self, config, check):
-        logging.debug("Configuring Grafana datasources")
-        grafana_config = config.config["grafana"]
-        for ds in grafana_config.get("datasources"):
+    def provision_ds(self, options):
+        self.log.debug("Configuring Grafana datasources")
+        grafana_config = self.config.model.grafana
+        for ds in grafana_config.datasources:
+            self.log.debug("Configuring DS %s" % ds["name"])
             port = ds.pop("port", None)
             ds_body = dict(
                 access="proxy",
@@ -72,8 +80,8 @@ class GrafanaManager:
             ds_body.update(ds)
             if "url" not in ds:
                 # Warning: ds_type is used as group name - beware
-                host = config.inventory[ds["type"]]["hosts"][0]
-                host_vars = config.inventory["_meta"]["hostvars"][host]
+                host = self.config.inventory[ds["type"]]["hosts"][0]
+                host_vars = self.config.hostvars(host)
                 host_ip = host_vars.get(
                     "internal_address", host_vars.get("ansible_host", host)
                 )
@@ -99,13 +107,12 @@ class GrafanaManager:
                 )
             else:
                 raise RuntimeError(
-                    f"Error checking datasources in Grafana: "
-                    f"{response.text}"
+                    f"Error checking datasources in Grafana: {response.text}"
                 )
 
             if response.status_code != 200:
                 raise RuntimeError(
-                    f"Error configuring datasources in Grafana: "
+                    "Error configuring datasources in Grafana: "
                     f"{response.text}"
                 )
 
@@ -127,7 +134,7 @@ class GrafanaManager:
             )
         )
         for panel in sorted(panel_defs, key=lambda k: k.get("order", 100)):
-            logging.debug(f"Processing panel {panel}")
+            self.log.debug(f"Processing panel {panel}")
             panel.pop("order", None)
             if "datasource" not in panel:
                 panel["datasource"] = "cloudmon"
@@ -135,7 +142,7 @@ class GrafanaManager:
         return panels
 
     def provision_dashboard(self, dashboard_def, panels):
-        logging.debug(
+        self.log.debug(
             f"Configuring Grafana dashboard {dashboard_def['title']}"
         )
         dashboard_uid = dashboard_def["uid"]
@@ -191,21 +198,21 @@ class GrafanaManager:
                 f"in Grafana: {response.text}"
             )
 
-    def provision_dashboards(self, config, check):
-        logging.debug("Configuring Grafana dashboards")
-        grafana_config = config.config["grafana"]
+    def provision_dashboards(self, options):
+        self.log.debug("Configuring Grafana dashboards")
+        grafana_config = self.config.model.grafana
         work_dir = "."
 
         dashboards_dir = Path(work_dir, "_dashboards")
         dashboards_dir.mkdir(parents=True, exist_ok=True)
         # Checkout all dashboard repos and merge results
-        for repo in grafana_config.get("dashboards", {}):
-            repo_dir = Path(work_dir, "git_repos", repo["name"])
+        for repo in grafana_config.dashboards:
+            repo_dir = Path(work_dir, "git_repos", repo.name)
             utils.checkout_git_repository(repo_dir, repo)
-            src = Path(repo_dir, repo.get("path", "dashboards/grafana"))
+            src = Path(repo_dir, repo.path)
             if src.exists():
                 shutil.copytree(
-                    Path(repo_dir, repo.get("path", "dashboards/grafana")),
+                    Path(repo_dir, repo.path),
                     dashboards_dir,
                     dirs_exist_ok=True,
                 )
@@ -213,14 +220,16 @@ class GrafanaManager:
         # Ensure target folder exists
         self.ensure_folder(uid="CloudMon", title="CloudMon")
         for dashboard_file in dashboards_dir.glob("**/dashboard.yaml"):
-            logging.debug(f"Found Dashboard definition {dashboard_file}")
+            self.log.debug(f"Found Dashboard definition {dashboard_file}")
             with open(dashboard_file, "r") as f:
                 dashboard_def = yaml.load(f, Loader=yaml.SafeLoader)
             dashboard_panels = []
             for panel_file in dashboard_file.parent.glob("*.yaml"):
                 if panel_file.name == "dashboard.yaml":
                     continue
-                logging.debug(f"Found Dashboard panel definition {panel_file}")
+                self.log.debug(
+                    f"Found Dashboard panel definition {panel_file}"
+                )
                 with open(panel_file, "r") as f:
                     dashboard_panels.append(
                         yaml.load(f, Loader=yaml.SafeLoader)
@@ -228,46 +237,58 @@ class GrafanaManager:
 
             self.provision_dashboard(dashboard_def, dashboard_panels)
 
-    def provision(self, config, check):
-        grafana_config = config.config["grafana"]
-        extravars = copy.deepcopy(config.default_extravars)
-        # For now group_name is hardcoded to grafana
-        extravars["grafana_group_name"] = "grafana"
-        extravars.update(grafana_config.get("config", {}))
-        if "grafana_database_host" not in extravars:
-            db_host = config.inventory["postgres"]["hosts"][0]
-            db_host_vars = config.inventory["_meta"]["hostvars"][db_host]
-            extravars["grafana_database_host"] = db_host_vars.get(
-                "internal_address",
-                db_host_vars.get("ansible_address", db_host),
+    def provision(self, options):
+        grafana_config = self.config.model.grafana
+        if grafana_config.k8_config:
+            # Deploy Grafana into K8
+            logging.debug("Installing Grafana into K8")
+            raise NotImplementedError
+
+        else:
+            # Deploy Grafana onto VMs
+            logging.debug("Installing Grafana into VMs")
+            extravars = copy.deepcopy(self.config.default_extravars)
+            # For now group_name is hardcoded to grafana
+            extravars["grafana_group_name"] = "grafana"
+            extravars.update(grafana_config.get("config", {}))
+            if "grafana_database_host" not in extravars:
+                db_host = self.config.inventory["postgres"]["hosts"][0]
+                db_host_vars = self.config.hostvars(db_host)
+                db_port = None
+                if self.config.model.database.ha_mode:
+                    db_port = "5000"
+                extravars["grafana_database_host"] = db_host_vars.get(
+                    "internal_address",
+                    db_host_vars.get("ansible_address", db_host),
+                )
+                if db_port:
+                    extravars["grafana_database_host"] += ":" + db_port
+
+            r = ansible_runner.run(
+                private_data_dir=self.config.private_data_dir,
+                project_dir=self.config.project_dir.as_posix(),
+                artifact_dir=".cloudmon_artifact",
+                playbook="install_grafana.yaml",
+                inventory=self.config.inventory_path,
+                extravars=extravars,
+                verbosity=2,
             )
-
-        logging.debug("Grafana extra vars: %s", extravars)
-
-        r = ansible_runner.run(
-            private_data_dir=config.private_data_dir,
-            artifact_dir=".cloudmon_artifact",
-            playbook="install_grafana.yaml",
-            inventory=config.inventory_path,
-            extravars=extravars,
-            verbosity=1,
-        )
-        if r.rc != 0:
-            raise RuntimeError("Error provisioning Grafana")
+            if r.rc != 0:
+                raise RuntimeError("Error provisioning Grafana")
 
         if "api_token" not in grafana_config:
-            self.generate_api_token(config)
+            self.generate_api_token()
 
-    def generate_api_token(self, config):
-        grafana_config = config.config["grafana"]
-        grafana_host = config.inventory["grafana"]["hosts"][0]
-        grafana_host_vars = config.inventory["_meta"]["hostvars"][grafana_host]
+    def generate_api_token(self):
+        grafana_config = self.config.config["grafana"]
+        grafana_host = self.config.inventory["grafana"]["hosts"][0]
+        grafana_host_vars = self.config.hostvars(grafana_host)
         grafana_ip = grafana_host_vars.get("ansible_host", grafana_host)
         api_url = f"http://{grafana_ip}:3000"
 
-        logging.debug(
+        self.log.debug(
             "Grafana host %s",
-            config.inventory["_meta"]["hostvars"][grafana_host],
+            self.config.hostvars(grafana_host),
         )
         auth = requests.auth.HTTPBasicAuth(
             "admin",
@@ -292,8 +313,7 @@ class GrafanaManager:
             )
             if response.status_code != 201:
                 raise RuntimeError(
-                    "Error generating Grafana ServiceAccount: "
-                    f"{response.text}"
+                    f"Error generating Grafana ServiceAccount: {response.text}"
                 )
             cloudmon_sa = response.json()
 
@@ -309,7 +329,7 @@ class GrafanaManager:
                 "or add grafna.api_token to the config directly"
             )
         api_token = response.json()["key"]
-        config.config["grafana"]["api_url"] = api_url
-        config.config["grafana"]["api_token"] = api_token
+        self.config.config["grafana"]["api_url"] = api_url
+        self.config.config["grafana"]["api_token"] = api_token
         self._prepare_session(api_url, api_token)
-        config.is_updated = True
+        self.config.is_updated = True

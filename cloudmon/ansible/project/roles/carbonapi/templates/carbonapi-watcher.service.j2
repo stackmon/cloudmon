@@ -1,0 +1,10 @@
+[Unit]
+Description=Carbonapi restarter
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart srv.service
+
+[Install]
+WantedBy=multi-user.target

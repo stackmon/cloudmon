@@ -1,0 +1,22 @@
+- name: Make sure the postgres service stopped
+  become: true
+  ansible.builtin.systemd:
+    state: "stopped"
+    name: "{{ item }}"
+    enabled: false
+  loop:
+    - "postgres.service"
+    - "postgres-haproxy.service"
+
+- name: Remove postgres data
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: "absent"
+  loop:
+    - "/etc/systemd/system/postgres.service"
+    - "/etc/systemd/system/postgres-haproxy.service"
+    - "/etc/postgres"
+    - "/var/lib/postgresql/data"
+    - "/var/lib/postgresql/patroni"
+    - "/var/lib/postgresql/ssl"

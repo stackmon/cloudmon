@@ -1,0 +1,11 @@
+---
+# Playbook to start PostgreSQL
+#
+- name: "Starting PostgreSQL"
+  hosts: "{{ postgres_group_name | default('postgres') }}:!disabled"
+  become: true
+  tasks:
+    - name: Start service
+      ansible.builtin.service:
+        name: "postgres"
+        state: "started"

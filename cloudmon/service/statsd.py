@@ -17,18 +17,21 @@ import ansible_runner
 
 
 class StatsdManager:
+    log = logging.getLogger(__name__)
+
     def __init__(self, cloudmon_config):
         self.config = cloudmon_config
 
-    def provision(self, check):
-        for (zone_name, zone_data) in self.config.config[
-            "monitoring_zones"
-        ].items():
-            statsd_group_name = zone_data.get("statsd_group_name", "statsd")
+    def provision(self, options):
+        for (
+            zone_name,
+            zone_data,
+        ) in self.config.model.monitoring_zones.items():
+            statsd_group_name = zone_data.statsd_group_name
 
             graphite_address = self.config.get_graphite_zone_address(zone_name)
 
-            logging.info(
+            self.log.info(
                 "Provisioning StatsD on %s in zone: %s",
                 statsd_group_name,
                 zone_name,
@@ -37,15 +40,16 @@ class StatsdManager:
                 statsd_hosts=statsd_group_name,
                 statsd_graphite_host=graphite_address,
                 statsd_graphite_port=2003,
-                statsd_graphite_port_pickle=2004,
+                # NOTE(gtema): for now we stick to push data into the relay
+                statsd_graphite_port_pickle=2014,
                 statsd_graphite_protocol="pickle",
                 statsd_legacy_namespace=False,
                 statsd_server="./servers/udp",
-                ansible_check_mode=check,
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="install_statsd.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,

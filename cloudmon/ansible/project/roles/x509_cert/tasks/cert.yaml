@@ -1,0 +1,43 @@
+---
+# Generate or return current X509 certificate
+- name: Create directories
+  # become: true
+  ansible.builtin.file:
+    dest: "{{ certs_path }}/{{ item }}"
+    state: "directory"
+  loop:
+    - "keys"
+    - "csr"
+    - "certs"
+    - "ca"
+
+- name: Create cert private key {{ x509_common_name }}
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_path }}/keys/{{ x509_common_name }}.pem"
+    format: "{{ x509_private_key_format | default(omit) }}"
+    size: 4096
+
+- name: Generate csr {{ x509_common_name }}
+  community.crypto.openssl_csr:
+    path: "{{ certs_path }}/csr/{{ x509_common_name }}.csr"
+    privatekey_path: "{{ certs_path }}/keys/{{ x509_common_name }}.pem"
+    common_name: "{{ x509_common_name }}"
+    subject_alt_name: "{{ x509_alt_name | ternary(x509_alt_name,omit) }}"
+
+- name: Create certificate {{ x509_common_name }}
+  community.crypto.x509_certificate:
+    path: "{{ certs_path }}/certs/{{ x509_common_name }}.pem"
+    privatekey_path: "{{ certs_path }}/keys/{{ x509_common_name }}.pem"
+    csr_path: "{{ certs_path }}/csr/{{ x509_common_name }}.csr"
+    provider: "{{ x509_domain_ca is defined | ternary('ownca','selfsigned') }}"
+    ownca_path: "{{ x509_ca_cert }}"
+    ownca_privatekey_path: "{{ x509_ca_key }}"
+
+- name: Set facts
+  set_fact:
+    x509_certs: "{{ (x509_certs | default({})) | combine({
+      x509_common_name: {
+        'ca': (x509_ca_cert),
+        'cert': (certs_path + '/certs/' + x509_common_name + '.pem'),
+        'key':  (certs_path + '/keys/' + x509_common_name + '.pem'),
+        }}) }}"

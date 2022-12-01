@@ -6,4 +6,5 @@
   become: true
   gather_facts: true
   roles:
+    - firewalld
     - postgresql

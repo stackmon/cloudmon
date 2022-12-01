@@ -23,20 +23,23 @@ class EpmonConfig:
         self.zone = None
         self.image = None
         self.ansible_group_name = None
+        self.environment = None
         self.watch_clouds = dict()
 
     def __repr__(self):
         return (
-            f"EpMon("
+            "EpMon("
             f"zone: {self.zone}; "
             f"image: {self.image}; "
             f"ansible_group_name: {self.ansible_group_name}; "
             f"watch_clouds: {self.watch_clouds};"
-            f")"
+            ")"
         )
 
 
 class EpmonManager:
+    log = logging.getLogger(__name__)
+
     def __init__(self, cloudmon_config):
         self.config = cloudmon_config
         self.epmon_configs = dict()
@@ -48,43 +51,41 @@ class EpmonManager:
         Process every individual matrix entry and configure
         components correspondingly
         """
-        for matrix_entry in self.config.config["matrix"]:
-            logging.debug("Processing %s", matrix_entry)
-            for plugin in matrix_entry["plugins"]:
-                logging.debug("Processing plugin %s", plugin)
-                plugin_data = self.config.config["cloudmon_plugins"].get(
-                    plugin["name"]
-                )
+        for matrix_entry in self.config.model.matrix:
+            self.log.debug("Processing %s", matrix_entry)
+            for plugin in matrix_entry.plugins:
+                self.log.debug("Processing plugin %s", plugin)
+                plugin_data = self.config.model.get_plugin_by_name(plugin.name)
                 if not plugin_data:
-                    logging.warn("Plugin is not known in cloudmon_plugins")
-                if plugin_data.get("type") == "epmon":
+                    self.log.warn("Plugin is not known in cloudmon_plugins")
+                if plugin_data.type == "epmon":
                     # For now we only construct global apimon config matrix
                     self.process_plugin_entry(
                         plugin_data, matrix_entry, plugin
                     )
-        logging.debug(f"Epmon config: {self.epmon_configs}")
+        self.log.debug(f"Epmon config: {self.epmon_configs}")
 
     def process_plugin_entry(self, plugin_ref, matrix_entry, plugin):
-        env_name = matrix_entry["env"]
-        zone = matrix_entry["monitoring_zone"]
+        env_name = matrix_entry.env
+        zone = matrix_entry.monitoring_zone
         epmon_config = self.epmon_configs.setdefault(zone, EpmonConfig())
         epmon_config.environment = env_name
         epmon_config.zone = zone
-        ansible_group_name = plugin.get("epmon_inventory_group_name", "epmons")
+        ansible_group_name = plugin.epmon_inventory_group_name
         epmon_config.ansible_group_name = ansible_group_name
-        epmon_config.image = plugin_ref["image"]
+        epmon_config.image = plugin_ref.image
         config = None
-        if "config" in plugin_ref:
-            # Read config file
-            # TODO: we would most likely have same config - cache?
-            yaml = YAML()
-            with open(plugin_ref["config"], "r") as f:
-                config = yaml.load(f)
+
+        # Read config file
+        # TODO: we would most likely have same config - cache?
+        yaml = YAML()
+        with open(plugin_ref.config, "r") as f:
+            config = yaml.load(f)
 
         services = dict()
         # Find requested config elements to know which services we want to
         # watch in this env
-        for config_element_ref in plugin.get("config_elements", []):
+        for config_element_ref in plugin.config_elements:
             if config_element_ref in config["elements"]:
                 config_element = config["elements"][config_element_ref]
                 service_entry = dict()
@@ -97,23 +98,21 @@ class EpmonManager:
             # which services
             services=services,
             # how cloud is named
-            cloud=plugin["cloud_name"],
+            cloud=plugin.cloud_name,
         )
 
-    def provision(self, check):
+    def provision(self, options):
         for _, epmon_config in self.epmon_configs.items():
-            logging.info(
+            self.log.info(
                 "Provisioning EpMon in monitoring zone %s",
                 epmon_config.zone,
             )
 
-            statsd_group_name = self.config.config["monitoring_zones"][
+            statsd_group_name = self.config.model.get_monitoring_zone_by_name(
                 epmon_config.zone
-            ].get("statsd_group_name", "statsd")
+            ).statsd_group_name
             statsd_servers = self.config.inventory[statsd_group_name]["hosts"]
-            statsd_host_vars = self.config.inventory["_meta"]["hostvars"].get(
-                statsd_servers[0]
-            )
+            statsd_host_vars = self.config.hostvars(statsd_servers[0])
             # internal_address or ansible_host or hostname
             statsd_address = statsd_host_vars.get(
                 "internal_address",
@@ -137,7 +136,7 @@ class EpmonManager:
             )
             clouds_creds = []
             # Construct list of cloud credentials for required environments
-            for (env, data) in epmon_config.watch_clouds.items():
+            for env, data in epmon_config.watch_clouds.items():
                 clouds_creds.append(
                     self.config.get_env_cloud_credentials(
                         env_name=env,
@@ -148,7 +147,6 @@ class EpmonManager:
 
             epmon_secure_cfg = dict(clouds=clouds_creds)
             extravars = dict(
-                ansible_check_mode=check,
                 epmons_group_name=epmon_config.ansible_group_name,
                 epmon_image=epmon_config.image,
                 epmon_config_dir="/etc/cloudmon",
@@ -159,6 +157,7 @@ class EpmonManager:
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="install_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -167,19 +166,19 @@ class EpmonManager:
             if r.rc != 0:
                 raise RuntimeError("Error provisioning EpMon")
 
-    def stop(self, check=False):
+    def stop(self, options):
         for _, epmon_config in self.epmon_configs.items():
-            logging.info(
+            self.log.info(
                 "Stopping EpMon in monitoring zone %s",
                 epmon_config.zone,
             )
             extravars = dict(
-                ansible_check_mode=check,
                 epmons_group_name=epmon_config.ansible_group_name,
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="stop_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -188,19 +187,19 @@ class EpmonManager:
             if r.rc != 0:
                 raise RuntimeError("Error stopping EpMon")
 
-    def start(self, check=False):
+    def start(self, options):
         for _, epmon_config in self.epmon_configs.items():
-            logging.info(
+            self.log.info(
                 "Starting EpMon in monitoring zone %s",
                 epmon_config.zone,
             )
             extravars = dict(
-                ansible_check_mode=check,
                 epmons_group_name=epmon_config.ansible_group_name,
             )
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="start_epmon.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,

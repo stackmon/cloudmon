@@ -1,0 +1,38 @@
+---
+# Generate CA X509 certificate
+- name: Create directories
+  # become: true
+  ansible.builtin.file:
+    dest: "{{ certs_path }}/{{ item }}"
+    state: "directory"
+  loop:
+    - "ca"
+    - "csr"
+
+- name: Create CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ x509_ca_key }}"
+    size: 4096
+
+- name: Create the CA CSR
+  community.crypto.openssl_csr:
+    path: "{{ certs_path }}/ca/ca.csr"
+    privatekey_path: "{{ x509_ca_key }}"
+    # constraints and usage required by CA
+    basic_constraints_critical: true
+    basic_constraints:
+      - "CA:TRUE"
+      - "pathlen:0"
+    key_usage:
+      - "digitalSignature"
+      - "cRLSign"
+      - "keyCertSign"
+    common_name: "{{ x509_ca_common_name }}"
+    subject_alt_name: "{{ x509_subject_alt_name }}"
+
+- name: Create CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ x509_ca_cert }}"
+    privatekey_path: "{{ x509_ca_key }}"
+    csr_path: "{{ certs_path }}/ca/ca.csr"
+    provider: "selfsigned"

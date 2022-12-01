@@ -7,6 +7,9 @@ grafana_os_group: grafana
 
 grafana_service_account_name: grafana
 
+grafana_image: "grafana/grafana:latest"
+grafana_renderer_image: "grafana/grafana-image-renderer:latest"
+
 packages: []
 
 grafana_uid_prefix: ""

@@ -1,0 +1,14 @@
+- include_tasks: common.yaml
+
+- name: Create selfsigned certificate
+  community.crypto.x509_certificate:
+    path: "{{ certs_path }}/{{ cert.key }}.crt"
+    privatekey_path: "{{ certs_path }}/{{ cert.key }}.pem"
+    csr_path: "{{ certs_path }}/{{ cert.key }}.csr"
+    provider: "selfsigned"
+
+- name: Create fullchain cert for haproxy
+  ansible.builtin.copy:
+    src: "{{ certs_path }}/{{ cert.key }}.crt"
+    dest: "{{ certs_path }}/{{ cert.key }}-fullchain.crt"
+    remote_src: true

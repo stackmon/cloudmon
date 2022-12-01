@@ -1,0 +1,25 @@
+- include_tasks: common.yaml
+
+- name: Create acme challenge
+  community.crypto.acme_certificate:
+    acme_version: 2
+    acme_directory: "{{ acme_directory }}"
+    terms_agreed: "yes"
+    account_key_src: "{{ certs_path }}/account-key.pem"
+    src: "{{ certs_path }}/{{ cert.key }}.csr"
+    cert: "{{ certs_path }}/{{ cert.key }}.crt"
+    challenge: "dns-01"
+    remaining_days: 60
+    force: "{{ csr_result is changed }}"
+  register: challenge
+
+- name: Save acme challenge
+  set_fact:
+    acme_challenge: "{{ acme_challenge | combine({cert.key: challenge}) }}"
+  when: challenge is defined and challenge is changed
+
+- name: Construct TXT
+  set_fact:
+    acme_txt_required: "{{ acme_txt_required | combine({item.key: ['\"'+item.value[0]+'\"']}) }}"
+  loop: "{{ challenge['challenge_data_dns'] | dict2items }}"
+  when: challenge is defined and challenge is changed

@@ -1,1 +1,3 @@
-package_name: firewalld
+packages:
+  - firewalld
+  - python3-firewall

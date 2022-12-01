@@ -1,0 +1,30 @@
+[Unit]
+Description=CarbonAPI Service
+After=syslog.target network.target
+
+[Service]
+Restart=always
+ExecStartPre=-{{ container_runtime }} kill carbonapi
+ExecStartPre=-{{ container_runtime }} rm carbonapi
+{% if graphite_ssl_cert is defined and graphite_ssl_key is defined -%}
+ExecStartPre=cp {{ graphite_ssl_cert }} /etc/graphite/ssl/carbonapi.crt
+ExecStartPre=cp {{ graphite_ssl_key }} /etc/graphite/ssl/carbonapi.key
+ExecStartPre=cp /etc/ssl/certs/ca-certificates.crt /etc/graphite/ssl/ca.crt
+{% endif -%}
+# ExecStartPre=chown /etc/graphite/ssl/carbonapi.*
+
+ExecStart={{ container_runtime }} run \
+    --name carbonapi \
+    -p 443:8082 \
+{% if container_command == 'podman' %}
+    --log-opt=path=/dev/null \
+{% endif %}
+    -v /etc/graphite/carbonapi.yaml:/etc/carbonapi.yml:ro \
+{% if graphite_ssl_cert is defined and graphite_ssl_key is defined -%}
+    -v /etc/graphite/ssl:/etc/ssl/private:ro,Z \
+{% endif -%}
+    --tmpfs /tmp:rw,size=2g \
+    {{ carbonapi_image }}
+
+[Install]
+WantedBy=multi-user.target

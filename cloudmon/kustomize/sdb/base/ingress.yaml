@@ -1,0 +1,17 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: status-dashboard
+spec:
+  rules:
+    - host: status-dashboard
+      http:
+        paths:
+          - backend:
+              service:
+                name: status-dashboard
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

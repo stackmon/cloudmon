@@ -1,0 +1,10 @@
+graphite_config_location: "/etc/graphite"
+carbonapi_tz: ""
+  # "Europe/Berlin"
+
+carbonapi_image: "gographite/carbonapi:v0.15.4"
+
+container_command: "docker"
+container_runtime: "/usr/bin/{{ container_command }}"
+
+state: "present"
