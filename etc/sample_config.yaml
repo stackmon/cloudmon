@@ -31,9 +31,9 @@ environments: # What we monitor and which credentials to use from every monitori
 cloudmon_plugins:
   apimon:
     type: apimon
-    scheduler_image: quay.io/opentelekomcloud/apimon:change_35_latest
-    executor_image: quay.io/opentelekomcloud/apimon:change_35_latest
-    epmon_image: quay.io/opentelekomcloud/apimon:change_35_latest
+    scheduler_image: quay.io/opentelekomcloud/apimon:change_38_latest
+    executor_image: quay.io/opentelekomcloud/apimon:change_38_latest
+    epmon_image: quay.io/opentelekomcloud/apimon:change_38_latest
     tests_projects:
       - name: apimon
         repo_url: https://github.com/stackmon/apimon-tests
@@ -43,7 +43,7 @@ cloudmon_plugins:
         grafana_dashboards_location: dashboards
   epmon:
     type: epmon
-    image: quay.io/opentelekomcloud/apimon:change_35_latest
+    image: quay.io/opentelekomcloud/apimon:change_38_latest
     config: etc/sample_config_epmon.yaml
   lb:
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb
