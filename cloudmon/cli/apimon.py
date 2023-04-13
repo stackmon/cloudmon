@@ -29,7 +29,7 @@ class ApiMonProvision(Command):
 
 
 class ApiMonStop(Command):
-    "Stop Api Monitoring plugin"
+    "Stop Api Monitoring plugin processes"
     log = logging.getLogger(__name__)
 
     def get_parser(self, prog_name):
@@ -44,7 +44,7 @@ class ApiMonStop(Command):
 
 
 class ApiMonStart(Command):
-    "Starting Api Monitoring plugin"
+    "Starting Api Monitoring plugin processes"
     log = logging.getLogger(__name__)
 
     def get_parser(self, prog_name):

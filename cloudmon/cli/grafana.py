@@ -19,7 +19,7 @@ from cloudmon.service.grafana import GrafanaManager
 
 
 class GrafanaProvision(Command):
-    "Provision Grafana"
+    "Provision (install) Grafana"
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):
@@ -34,7 +34,7 @@ class GrafanaProvision(Command):
 
 
 class GrafanaConfigure(Command):
-    "Configure Grafana"
+    "Configure Grafana - Datasources and dashboards"
 
     log = logging.getLogger(__name__)
 

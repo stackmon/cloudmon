@@ -168,7 +168,11 @@ class TestEpmon(base.TestCase):
     )
     def test_stop(self, runner_mock):
         config = self.get_config(self.cfg1)
-        manager = epmon.EpmonManager(config)
+        # mock reading of epmon config
+        with mock.patch(
+            "builtins.open", mock.mock_open(read_data=self.epmon_cfg)
+        ):
+            manager = epmon.EpmonManager(config)
 
         manager.stop(None)
         runner_mock.assert_called_with(
@@ -186,7 +190,11 @@ class TestEpmon(base.TestCase):
     )
     def test_start(self, runner_mock):
         config = self.get_config(self.cfg1)
-        manager = epmon.EpmonManager(config)
+        # mock reading of epmon config
+        with mock.patch(
+            "builtins.open", mock.mock_open(read_data=self.epmon_cfg)
+        ):
+            manager = epmon.EpmonManager(config)
 
         manager.start(None)
         runner_mock.assert_called_with(
@@ -204,7 +212,11 @@ class TestEpmon(base.TestCase):
     )
     def test_provision(self, runner_mock):
         config = self.get_config(self.cfg1, self.inventory)
-        manager = epmon.EpmonManager(config)
+        # mock reading of epmon config
+        with mock.patch(
+            "builtins.open", mock.mock_open(read_data=self.epmon_cfg)
+        ):
+            manager = epmon.EpmonManager(config)
 
         manager.provision(None)
         runner_mock.assert_called_with(
@@ -220,7 +232,15 @@ class TestEpmon(base.TestCase):
                 "epmon_secure_config_file_name": "epmon-secure.yaml",
                 "epmon_config": {
                     "epmon": {
-                        "clouds": [{"e2": {"service_override": {}}}],
+                        "clouds": [
+                            {
+                                "e2": {
+                                    "service_override": {
+                                        "foo": {"urls": ["/", "/bar"]}
+                                    }
+                                }
+                            }
+                        ],
                         "socket": "/tmp/epmon.socket",
                         "zone": "zone2",
                     },

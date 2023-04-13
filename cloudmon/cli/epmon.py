@@ -29,7 +29,7 @@ class EpmonProvision(Command):
 
 
 class EpmonStop(Command):
-    "Stop Endpoint Monitoring plugin"
+    "Stop Endpoint Monitoring plugin processes"
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):
@@ -39,7 +39,7 @@ class EpmonStop(Command):
 
 
 class EpmonStart(Command):
-    "Starting Endpoint Monitoring plugin"
+    "Starting Endpoint Monitoring plugin processes"
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):

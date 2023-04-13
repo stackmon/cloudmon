@@ -23,7 +23,7 @@ from cloudmon.cli import statsd
 
 
 class Provision(Command):
-    "Provision StackMon service"
+    "Provision all necessary StackMon components"
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):

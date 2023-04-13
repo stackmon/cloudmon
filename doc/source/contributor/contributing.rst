@@ -2,4 +2,4 @@
 So You Want to Contribute...
 ============================
 
-TODO
+.. include:: ../../../CONTRIBUTING.rst
