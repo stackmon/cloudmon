@@ -1,0 +1,10 @@
+certs_path: "/etc/ssl"
+x509_domain_ca: true
+x509_ca_cert: "{{ certs_path }}/ca/ca.pem"
+x509_ca_key: "{{ certs_path }}/ca/ca.key"
+
+x509_ca_common_name: "C=DE, ST=NRW, O=Open Telekom Cloud, OU=Eco, CN=caroot"
+x509_subject_alt_name:
+  - "DNS:tsi-dev.otc-service.com"
+
+x509_certs: {}

@@ -1,0 +1,31 @@
+all:
+  hosts:
+    # Replace with your host IP address
+    #server1:
+    #  ansible_host: A.B.C.D
+    #  ansible_user: ubuntu
+    # Since components want to talk to each other using internal network -
+    # define this
+    #  internal_address: 192.168.0.2
+  children:
+    statsd:
+      hosts:
+        worker
+    graphite:
+      hosts:
+        worker
+    grafana:
+      hosts:
+        worker
+    schedulers:
+      hosts:
+        worker
+    executors:
+      hosts:
+        worker
+    epmons:
+      hosts:
+        worker
+    postgres:
+      hosts:
+        worker

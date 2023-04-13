@@ -1,0 +1,12 @@
+- name: Generate signing key
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_path }}/{{ cert.key }}.pem"
+    size: 4096
+
+- name: Generate csr
+  community.crypto.openssl_csr:
+    path: "{{ certs_path }}/{{ cert.key }}.csr"
+    privatekey_path: "{{ certs_path }}/{{ cert.key }}.pem"
+    common_name: "{{ cert.value[0] }}"
+    subject_alt_name: "DNS:{{ cert.value | join(',DNS:') }}"
+  register: csr_result

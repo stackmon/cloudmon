@@ -1,0 +1,5 @@
+certs_path: "/etc/ssl/{{ inventory_hostname }}"
+acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
+acme_account_contact:
+  - "mailto:DL-PBCOTCDELECOCERT@t-systems.com"
+ssl_cert_selfsign: false

@@ -34,18 +34,20 @@ class ApiMonConfig:
 
     def __repr__(self):
         return (
-            f"ApiMon("
+            "ApiMon("
             f"statsd_host:{self.statsd_host}; "
             f"scheduler_host: {self.scheduler_host}; "
             f"test_projects: {self.test_projects}; "
             f"test_matrix: {self.test_matrix}; "
             f"test_environments: {self.test_environments}; "
             f"clouds: {self.clouds}"
-            f")"
+            ")"
         )
 
 
 class ApiMonManager:
+    log = logging.getLogger(__name__)
+
     def __init__(self, cloudmon_config):
         self.config = cloudmon_config
         self.apimon_configs = dict()
@@ -58,26 +60,24 @@ class ApiMonManager:
         correspondingly
 
         """
-        for matrix_entry in self.config.config["matrix"]:
-            logging.debug("Processing %s", matrix_entry)
-            for plugin in matrix_entry["plugins"]:
-                logging.debug("Processing plugin %s", plugin)
-                plugin_data = self.config.config["cloudmon_plugins"].get(
-                    plugin["name"]
-                )
+        for matrix_entry in self.config.model.matrix:
+            self.log.debug("Processing %s", matrix_entry)
+            for plugin in matrix_entry.plugins:
+                self.log.debug("Processing plugin %s", plugin)
+                plugin_data = self.config.model.get_plugin_by_name(plugin.name)
                 if not plugin_data:
-                    logging.warn("Plugin is not known in cloudmon_plugins")
-                if plugin_data.get("type") == "apimon":
+                    self.log.warn("Plugin is not known in cloudmon_plugins")
+                if plugin_data.type == "apimon":
                     # For now we only construct global apimon config matrix
                     self.process_plugin_entry(
                         plugin_data, matrix_entry, plugin
                     )
-        logging.debug(f"ApiMon config: {self.apimon_configs}")
+        self.log.debug(f"ApiMon config: {self.apimon_configs}")
 
     def process_plugin_entry(self, plugin_ref, matrix_entry, plugin):
-        plugin_ref = self.config.config["cloudmon_plugins"][plugin["name"]]
-        env_name = matrix_entry["env"]
-        zone = matrix_entry["monitoring_zone"]
+        plugin_ref = self.config.model.get_plugin_by_name(plugin.name)
+        env_name = matrix_entry.env
+        zone = matrix_entry.monitoring_zone
         if zone in self.apimon_configs:
             raise RuntimeError(
                 f"ApiMon entry for zone {zone} is already present. "
@@ -85,12 +85,8 @@ class ApiMonManager:
             )
         apimon_config = self.apimon_configs.setdefault(zone, ApiMonConfig())
         apimon_config.zone = zone
-        schedulers_group_name = plugin.get(
-            "schedulers_inventory_group_name", "schedulers"
-        )
-        executors_group_name = plugin.get(
-            "executors_inventory_group_name", "executor"
-        )
+        schedulers_group_name = plugin.schedulers_inventory_group_name
+        executors_group_name = plugin.executors_inventory_group_name
         if (
             apimon_config.schedulers_group_name
             and apimon_config.schedulers_group_name != schedulers_group_name
@@ -133,23 +129,21 @@ class ApiMonManager:
                             )
                             apimon_config.db_url = db_url
 
-        if plugin["tests_project"] not in apimon_config.test_projects:
-            for project in plugin_ref["tests_projects"]:
-                if project["name"] == plugin["tests_project"]:
-                    apimon_config.test_projects[
-                        plugin["tests_project"]
-                    ] = project
+        if plugin.tests_project not in apimon_config.test_projects:
+            for project in plugin_ref.tests_projects:
+                if project["name"] == plugin.tests_project:
+                    apimon_config.test_projects[plugin.tests_project] = project
                     break
 
-        key = "%s:%s" % (env_name, plugin["tests_project"])
+        key = "%s:%s" % (env_name, plugin.tests_project)
         if key in apimon_config.test_matrix:
             raise RuntimeError(
                 "Something absolutely wrong - %s is already known", key
             )
         apimon_matrix_entry = dict(
             env=env_name,
-            project=plugin["tests_project"],
-            tasks=plugin.get("tasks"),
+            project=plugin.tests_project,
+            tasks=plugin.tasks,
         )
         apimon_config.test_matrix[key] = apimon_matrix_entry
         if env_name not in apimon_config.test_environments:
@@ -175,34 +169,26 @@ class ApiMonManager:
         apimon_config.statsd_host = scheduler_host_vars.get(
             "internal_address", statsd_address
         )
-        apimon_config.scheduler_image = plugin_ref.get("scheduler_image")
-        apimon_config.executor_image = plugin_ref.get("executor_image")
+        apimon_config.scheduler_image = plugin_ref.scheduler_image
+        apimon_config.executor_image = plugin_ref.executor_image
 
         self.apimon_configs[zone] = apimon_config
 
     def get_apimon_env(self, env_name, zone):
-        if env_name not in self.config.config["environments"]:
-            raise RuntimeError("Environment %s is not known", env_name)
-        env = self.config.config["environments"][env_name]
-        if zone not in env["monitoring_zones"]:
-            raise RuntimeError(
-                "Environment %s has no monitoring zone %s defined",
-                env_name,
-                zone,
-            )
-        clouds = env["monitoring_zones"][zone].get("clouds", [])
-        res = dict(name=env_name, env=env.get("env"), clouds=list())
+        env = self.config.model.get_env_by_name(env_name)
+        clouds = env.get_zone_by_name(zone).clouds
+        res = dict(name=env_name, env=env.env, clouds=list())
         for cloud in clouds:
-            res["clouds"].append(cloud["name"])
+            res["clouds"].append(cloud.name)
         return res
 
-    def provision(self, check):
-        self.provision_schedulers(check)
-        self.provision_executors(check)
+    def provision(self, options):
+        self.provision_schedulers(options)
+        self.provision_executors(options)
 
-    def provision_schedulers(self, check):
+    def provision_schedulers(self, options):
         for _, apimon_config in self.apimon_configs.items():
-            logging.info(
+            self.log.info(
                 "Provisioning ApiMon Scheduler in monitoring zone %s",
                 apimon_config.zone,
             )
@@ -217,11 +203,11 @@ class ApiMonManager:
                 )
 
             extravars = dict(
-                ansible_check_mode=check,
                 scheduler_config_dir="/etc/cloudmon",
                 scheduler_config_file_name="apimon-scheduler.yaml",
                 scheduler_secure_config_file_name=(
-                    "apimon-scheduler-secure.yaml"),
+                    "apimon-scheduler-secure.yaml"
+                ),
                 schedulers_group_name=apimon_config.schedulers_group_name,
             )
             if apimon_config.scheduler_image:
@@ -252,11 +238,12 @@ class ApiMonManager:
             extravars["scheduler_config"] = scheduler_config
             extravars["scheduler_secure_config"] = scheduler_secure_config
 
-            logging.debug("Scheduler extra vars: %s", extravars)
+            self.log.debug("Scheduler extra vars: %s", extravars)
 
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="install_scheduler.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -267,7 +254,7 @@ class ApiMonManager:
 
     def provision_executors(self, check):
         for _, apimon_config in self.apimon_configs.items():
-            logging.info(
+            self.log.info(
                 "Provision ApiMon Executors for %s", apimon_config.zone
             )
             extravars = dict(
@@ -280,7 +267,6 @@ class ApiMonManager:
                 extravars["executor_image"] = apimon_config.executor_image
 
             executor_config = dict(
-                ansible_check_mode=check,
                 secure="/etc/apimon/apimon-executor-secure.yaml",
                 gear=[dict(host=apimon_config.scheduler_host, port=4730)],
                 log=dict(config="/etc/apimon/logging.conf"),
@@ -303,11 +289,12 @@ class ApiMonManager:
             extravars["executor_config"] = executor_config
             extravars["executor_secure_config"] = executor_secure_config
 
-            logging.debug("Executor extra vars: %s", extravars)
+            self.log.debug("Executor extra vars: %s", extravars)
 
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
                 artifact_dir=".cloudmon_artifact",
+                project_dir=self.config.project_dir.as_posix(),
                 playbook="install_executor.yaml",
                 inventory=self.config.inventory_path,
                 extravars=extravars,
@@ -316,38 +303,38 @@ class ApiMonManager:
             if r.rc != 0:
                 raise RuntimeError("Error provisioning ApiMon Executors")
 
-    def stop(self, component=None, check=False):
+    def stop(self, options):
         for _, apimon_config in self.apimon_configs.items():
-            if not component:
-                self.stop_executors(apimon_config, check)
-                self.stop_schedulers(apimon_config, check)
-            elif component == "executor":
-                self.stop_executors(apimon_config, check)
-            elif component == "scheduler":
-                self.stop_schedulers(apimon_config, check)
+            if not options.component:
+                self.stop_executors(apimon_config, options)
+                self.stop_schedulers(apimon_config, options)
+            elif options.component == "executor":
+                self.stop_executors(apimon_config, options)
+            elif options.component == "scheduler":
+                self.stop_schedulers(apimon_config, options)
 
-    def start(self, component=None, check=False):
+    def start(self, options):
         for _, apimon_config in self.apimon_configs.items():
-            if not component:
-                self.start_executors(apimon_config, check)
-                self.start_schedulers(apimon_config, check)
-            elif component == "executor":
-                self.start_executors(apimon_config, check)
-            elif component == "scheduler":
-                self.start_schedulers(apimon_config, check)
+            if not options.component:
+                self.start_executors(apimon_config, options)
+                self.start_schedulers(apimon_config, options)
+            elif options.component == "executor":
+                self.start_executors(apimon_config, options)
+            elif options.component == "scheduler":
+                self.start_schedulers(apimon_config, options)
 
-    def stop_schedulers(self, apimon_config, check):
-        logging.info(
+    def stop_schedulers(self, apimon_config, options):
+        self.log.info(
             "Stopping ApiMon Scheduler in monitoring zone %s",
             apimon_config.zone,
         )
         extravars = dict(
-            ansible_check_mode=check,
             schedulers_group_name=apimon_config.schedulers_group_name,
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
             artifact_dir=".cloudmon_artifact",
+            project_dir=self.config.project_dir.as_posix(),
             playbook="stop_schedulers.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -356,18 +343,18 @@ class ApiMonManager:
         if r.rc != 0:
             raise RuntimeError("Error stopping ApiMon Schedulers")
 
-    def stop_executors(self, apimon_config, check):
-        logging.info(
+    def stop_executors(self, apimon_config, options):
+        self.log.info(
             "Stopping ApiMon Executors in monitoring zone %s",
             apimon_config.zone,
         )
         extravars = dict(
-            ansible_check_mode=check,
             executors_group_name=apimon_config.executors_group_name,
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
             artifact_dir=".cloudmon_artifact",
+            project_dir=self.config.project_dir.as_posix(),
             playbook="stop_executors.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -376,18 +363,18 @@ class ApiMonManager:
         if r.rc != 0:
             raise RuntimeError("Error stopping ApiMon Executors")
 
-    def start_schedulers(self, apimon_config, check):
-        logging.info(
+    def start_schedulers(self, apimon_config, options):
+        self.log.info(
             "Starting ApiMon Scheduler in monitoring zone %s",
             apimon_config.zone,
         )
         extravars = dict(
-            ansible_check_mode=check,
             schedulers_group_name=apimon_config.schedulers_group_name,
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
             artifact_dir=".cloudmon_artifact",
+            project_dir=self.config.project_dir.as_posix(),
             playbook="start_schedulers.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,
@@ -396,18 +383,18 @@ class ApiMonManager:
         if r.rc != 0:
             raise RuntimeError("Error starting ApiMon Schedulers")
 
-    def start_executors(self, apimon_config, check):
-        logging.info(
+    def start_executors(self, apimon_config, options):
+        self.log.info(
             "Starting ApiMon Executors in monitoring zone %s",
             apimon_config.zone,
         )
         extravars = dict(
-            ansible_check_mode=check,
             executors_group_name=apimon_config.executors_group_name,
         )
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
             artifact_dir=".cloudmon_artifact",
+            project_dir=self.config.project_dir.as_posix(),
             playbook="start_executors.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,

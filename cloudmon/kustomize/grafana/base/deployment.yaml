@@ -1,0 +1,75 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "grafana"
+  labels:
+    app.kubernetes.io/component: "grafana"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: "grafana"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: "grafana"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: "app.kubernetes.io/name"
+                      operator: "In"
+                      values:
+                        - "grafana"
+                topologyKey: "kubernetes.io/hostname"
+
+      containers:
+
+        - image: "grafana/grafana-image-renderer"
+          name: "grafana-renderer"
+          ports:
+            - containerPort: 8081
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+
+        - image: "grafana/grafana"
+          name: "grafana"
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+
+          readinessProbe:
+            httpGet:
+              path: "/login"
+              scheme: "HTTP"
+              port: 3000
+          livenessProbe:
+            httpGet:
+              path: "/healthz"
+              scheme: "HTTP"
+              port: 3000
+          env:
+            - name: "GF_RENDERING_SERVER_URL"
+              value: "http://localhost:8081/render"
+            - name: "GF_RENDERING_CALLBACK_URL"
+              value: "http://grafana:3000"
+          envFrom:
+            - secretRef:
+                name: "grafana-config"
+      volumes:

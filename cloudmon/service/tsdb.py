@@ -18,18 +18,19 @@ import ansible_runner
 
 
 class GraphiteManager:
+    log = logging.getLogger(__name__)
+
     def __init__(self, cloudmon_config):
         self.config = cloudmon_config
 
-    def provision(self, check):
-        logging.info("Provisioning Graphite")
+    def provision(self, options):
+        self.log.info("Provisioning Graphite")
         extravars = copy.deepcopy(self.config.default_extravars)
-        extravars.update(
-            dict(ansible_check_mode=check, graphite_group_name="graphite")
-        )
+        extravars.update(dict(graphite_group_name="graphite"))
         r = ansible_runner.run(
             private_data_dir=self.config.private_data_dir,
             artifact_dir=".cloudmon_artifact",
+            project_dir=self.config.project_dir.as_posix(),
             playbook="install_graphite.yaml",
             inventory=self.config.inventory_path,
             extravars=extravars,

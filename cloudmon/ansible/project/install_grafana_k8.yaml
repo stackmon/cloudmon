@@ -1,0 +1,11 @@
+---
+# Playbook to install Grafana
+#
+- name: Provision Grafana
+  hosts: "localhost"
+  gather_facts: false
+  roles:
+    - grafana_k8
+      #    - name: Do
+      #      debug:
+      #        msg: "{{ lookup('kubernetes.core.kustomize', dir='../../kustomize/grafana/base') }}"

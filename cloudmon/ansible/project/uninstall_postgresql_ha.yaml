@@ -1,0 +1,17 @@
+---
+# Playbook to uninstall PostgreSQL
+#
+- name: Unprovision PostgreSQL
+  hosts: "{{ postgresql_group_name }}:!disabled"
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Uninstall PostgreSQL
+      ansible.builtin.include_role:
+        name: "postgresql_ha"
+        tasks_from: "uninstall.yaml"
+
+    - name: Uninstall ETCD
+      ansible.builtin.include_role:
+        name: "etcd"
+        tasks_from: "uninstall.yaml"

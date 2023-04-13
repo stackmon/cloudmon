@@ -1,0 +1,4 @@
+---
+roles:
+  - name: apimon_executor
+    source: ansible/roles/ansible_executor

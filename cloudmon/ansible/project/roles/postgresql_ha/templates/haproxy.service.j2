@@ -1,0 +1,28 @@
+[Unit]
+Description=Patroni - Haproxy container
+Wants=syslog.service
+
+[Service]
+Type=simple
+TimeoutSec=30s
+Restart=always
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} rm "postgres-haproxy"
+
+ExecStart={{ container_runtime }} run \
+    --name "postgres-haproxy" \
+{% if container_command == 'podman' %}
+    --log-opt=path=/dev/null \
+{% endif %}
+    -p 5000:5000 \
+    -v /etc/postgres/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
+    {{ postgres_haproxy_image }}
+
+ExecReload={{ container_runtime }} kill -s SIGHUP haproxy
+
+ExecStop={{ container_runtime }} stop "postgres-haproxy"
+ExecStop={{ container_runtime }} rm "postgres-haproxy"
+
+[Install]
+WantedBy=multi-user.target

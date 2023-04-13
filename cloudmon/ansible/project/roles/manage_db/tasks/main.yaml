@@ -8,9 +8,11 @@
     template: template0
     login_host: "localhost"
     login_password: "{{ postgres_root_password }}"
+    port: "{{ postgres_port | default(omit) }}"
 
 - name: Manage users
   include_tasks: "user.yaml"
   loop: "{{ db.users }}"
   loop_control:
     loop_var: "user"
+    label: "{{ user.name }}"

@@ -1,0 +1,49 @@
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+  user        haproxy
+  group       haproxy
+
+  log         stdout format raw local0
+
+  maxconn     100
+  # turn on stats unix socket
+  stats socket /var/lib/haproxy/stats
+
+  # utilize system-wide crypto-policies
+  ssl-default-bind-ciphers PROFILE=SYSTEM
+  ssl-default-server-ciphers PROFILE=SYSTEM
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+  mode                    tcp
+  log                     global
+  option                  tcplog
+  option                  dontlognull
+  option http-server-close
+  option                  redispatch
+  retries                 3
+  timeout http-request    10s
+  timeout queue           1m
+  timeout connect         4s
+  timeout client          10m
+  timeout server          10m
+  timeout http-keep-alive 10s
+  timeout check           5s
+  maxconn                 3000
+
+# Load Balancing for Postgres cluster
+listen postgres
+  bind *:5000
+  option httpchk
+  http-check expect status 200
+  default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+  server postgresql_{{ inventory_hostname }}_5432 {{ internal_address }}:5432 maxconn 100 check port 8008
+{% for node in (postgres_cluster_nodes) %}
+  server postgresql_{{ node }}_5432 {{ hostvars[node]["internal_address"] }}:5432 maxconn 100 check port 8008
+  server postgresql_{{ hostvars[node]["ansible_host"] }}_5432 {{ hostvars[node]["ansible_host"] }}:5432 maxconn 100 check port 8008
+{% endfor %}

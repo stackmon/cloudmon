@@ -12,27 +12,27 @@
     # graphite node should become member of (relay will be configired with all
     # hosts from this group)
     - block:
-      - name: Construct cluster destination lists
-        ansible.builtin.set_fact:
-          cluster_hosts: "{{ (cluster_hosts|default([])) + [(hostvars[item]['ansible_host'] + ':8080')] }}"
-          relay_destinations: "{{ (relay_destinations|default([])) + [(hostvars[item]['ansible_host'] + ':2004')] }}"
-          aggregate_destinations: "{{ (aggregate_destinations|default([])) + [(hostvars[item]['ansible_host'] + ':2004')] }}"
-        loop: "{{ groups[(graphite_instance_group | default('graphite'))] | list }}"
+        - name: Construct cluster destination lists
+          ansible.builtin.set_fact:
+            cluster_hosts: "{{ (cluster_hosts|default([])) + [(hostvars[item]['internal_address'] + ':8080')] }}"
+            cluster_gographite_hosts: "{{ (cluster_gographite_hosts|default([])) + [('http://' + hostvars[item]['internal_address'] + ':8081')] }}"
+            relay_destinations: "{{ (relay_destinations|default([])) + [(hostvars[item]['internal_address'] + ':2004')] }}"
+            aggregate_destinations: "{{ (aggregate_destinations|default([])) + [(hostvars[item]['internal_address'] + ':2004')] }}"
+          loop: "{{ groups[graphite_group_name] | list }}"
 
-      - name: Construct cluster memcache lists
-        ansible.builtin.set_fact:
-          memcache_hosts: "{{ (memcache_hosts|default([])) + [(hostvars[item]['ansible_host'] + ':11211')] }}"
-        loop: "{{ groups['memcached'] | list }}"
+        - name: Join cluster destination lists
+          ansible.builtin.set_fact:
+            graphite_relay_destinations: "{{ relay_destinations|join(', ') }}"
+            graphite_aggregate_destinations: "{{ aggregate_destinations|join(', ') }}"
+            graphite_cluster_servers: "{{ cluster_hosts|join(', ') }}"
+            graphite_relay: true
 
-      - name: Join cluster destination lists
-        ansible.builtin.set_fact:
-          graphite_relay_destinations: "{{ relay_destinations|join(', ') }}"
-          graphite_aggregate_destinations: "{{ aggregate_destinations|join(', ') }}"
-          graphite_cluster_servers: "{{ cluster_hosts|join(', ') }}"
-          graphite_cluster_memcache_hosts: "{{ memcache_hosts|join(', ') }}"
-          graphite_relay: true
       when:
-        - "graphite_instance_group is defined and graphite_instance_group|length"
+        - "groups[graphite_group_name] | list | length > 0"
+
+    - debug:
+        var: "cluster_hosts"
 
     - include_role: name=graphite
+    - include_role: name=carbonapi
   tags: graphite

@@ -1,0 +1,86 @@
+scope: {{ postgres_cluster_name }}
+name: {{ ansible_hostname }}
+
+etcd3:
+  hosts:
+{% for host in etcd_cluster_nodes %}
+  - {{ hostvars[host]["internal_address"] }}:2379
+{% endfor %}
+  protocol: https
+  cacert: /etc/ssl/private/ca.crt
+  cert: /etc/ssl/private/dcs.crt
+  key: /etc/ssl/private/dcs.key
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: {{ internal_address }}:8008
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    maximum_lag_on_failover: 1048576
+    postgresql:
+      use_pg_rewind: true
+      parameters:
+        ssl: on
+        ssl_cert_file: /var/lib/postgresql/ssl/server.crt
+        ssl_key_file: /var/lib/postgresql/ssl/server.key
+
+  initdb:  # Note: It needs to be a list (some options need values, others are switches)
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:  # Add following lines to pg_hba.conf after running 'initdb'
+  - host replication replicator 127.0.0.1/32 md5
+    # Allow all cluster nodes to access itself as replicator
+{% for node in (postgres_cluster_nodes + [inventory_hostname]) %}
+  - host replication replicator {{ hostvars[node]["ansible_host"] }}/32 md5
+{% if hostvars[node]["internal_address"] %}
+  - host replication replicator {{ hostvars[node]["internal_address"] }}/32 md5
+{% endif %}
+{% endfor %}
+    # Everybody else is "all"
+  - host all all 0.0.0.0/0 md5
+
+  # Some additional users users which needs to be created after initializing 
+  # new cluster 
+  users:
+    admin:
+      password: '{{ postgres_admin_password }}'
+      options:
+        - createrole
+        - createdb
+
+postgresql:
+  # in container listen on all addresses
+  listen: 0.0.0.0,{{ internal_address }}:5432,{{ ansible_host }}:5432
+  connect_address: {{ internal_address }}:5432
+  data_dir: /var/lib/postgresql/data
+  # pgpass: /tmp/pgpass1
+  authentication:
+    replication:
+      username: replicator
+      password: '{{ postgres_replicator_password }}'
+    superuser:
+      username: postgres
+      password: '{{ postgres_postgres_password }}'
+    rewind:  # Has no effect on postgres 10 and lower
+      username: rewind_user
+      password: '{{ postgres_rewind_password }}'
+  parameters:
+    # Fully qualified kerberos ticket file for the running user
+    # same as KRB5CCNAME used by the GSS
+    # unix_socket_directories: '.'
+
+#watchdog:
+#  mode: automatic # Allowed values: off, automatic, required
+#  device: /dev/watchdog
+#  safety_margin: 5
+
+tags:
+    nofailover: false
+    noloadbalance: false
+    clonefrom: false
+    nosync: false

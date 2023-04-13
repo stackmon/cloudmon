@@ -1,0 +1,17 @@
+- name: Restart carbonapi
+  ansible.builtin.systemd:
+    name: "carbonapi"
+    enabled: true
+    state: "restarted"
+    daemon_reload: true
+  loop:
+    - "carbonapi"
+    - "carbonapi-watcher.service"
+    - "carbonapi-watcher.path"
+
+- name: Restart carbonapi-healthcheck
+  ansible.builtin.systemd:
+    name: "carbonapi-healthcheck"
+    enabled: true
+    state: "restarted"
+    daemon_reload: true

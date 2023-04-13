@@ -1,0 +1,15 @@
+- name: Manage Secret
+  kubernetes.core.k8s:
+    context: "{{ item }}"
+    state: "present"
+    namespace: "grafana"
+    api_version: "v1"
+    kind: "ConfigMap"
+    apply: "yes"
+    definition:
+      metadata:
+        labels:
+          app.kubernetes.io/name: "grafana"
+          app.kubernetes.io/managed-by: "cloudmon"
+      data: "{{ grafana_config }}"
+  loop: "{{ contexts }}"

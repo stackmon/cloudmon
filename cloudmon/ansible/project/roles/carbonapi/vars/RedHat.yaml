@@ -1,0 +1,6 @@
+---
+packages:
+  - podman
+  - nmap-ncat
+
+container_command: podman

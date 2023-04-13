@@ -1,0 +1,18 @@
+---
+# handlers file for roles/postgresql
+
+- name: Restart etcd
+  become: true
+  throttle: 1
+  ansible.builtin.systemd:
+    name: "etcd.service"
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+# Need to reload firewalld after zone creation
+- name: Reload firewalld
+  become: true
+  ansible.builtin.systemd:
+    name: "firewalld"
+    state: "reloaded"

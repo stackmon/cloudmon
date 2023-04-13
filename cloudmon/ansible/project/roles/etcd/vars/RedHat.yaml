@@ -1,0 +1,5 @@
+---
+packages:
+  - podman
+
+container_command: podman

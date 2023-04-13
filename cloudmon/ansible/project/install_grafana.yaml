@@ -3,7 +3,6 @@
 #
 - name: Provision Grafana
   hosts: "{{ grafana_group_name }}:!disabled"
-  become: true
   gather_facts: true
   roles:
     - grafana

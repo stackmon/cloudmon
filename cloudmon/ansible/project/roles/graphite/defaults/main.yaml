@@ -21,7 +21,7 @@ graphite_carbon_enable_tagging: false
 
 # graphite_cluster_servers: "127.0.0.1:8080"
 
-graphite_image: "quay.io/opentelekomcloud/graphite-statsd:latest"
+graphite_image: "docker.io/graphiteapp/graphite-statsd:latest"
 
 container_command: "podman"
 container_runtime: "/usr/bin/{{ container_command }}"

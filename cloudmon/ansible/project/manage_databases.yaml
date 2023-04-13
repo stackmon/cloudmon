@@ -3,8 +3,9 @@
   hosts: "{{ postgresql_group_name }}"
   tasks:
     - name: Manage DB
-      include_role:
+      ansible.builtin.include_role:
         name: manage_db
+      run_once: true
       loop: "{{ databases }}"
       loop_control:
         loop_var: "db"

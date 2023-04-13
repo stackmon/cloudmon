@@ -1,0 +1,56 @@
+- name: Include variables
+  include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- set_fact:
+    acme_txt_required: []
+    acme_challenge: {}
+
+- name: Create directory to store certs
+  file:
+    path: "{{ certs_path }}"
+    state: "directory"
+    mode: "0755"
+
+- name: Generate account key
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_path }}/account-key.pem"
+    size: 4096
+
+- name: Create account
+  community.crypto.acme_account:
+    account_key_src: "{{ certs_path }}/account-key.pem"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: 2
+    state: present
+    terms_agreed: yes
+    contact: "{{ acme_account_contact | default(omit) }}"
+
+- include_tasks: acme.yaml
+  loop: "{{ query('dict', ssl_certs) }}"
+  loop_control:
+    loop_var: cert
+  when: not ssl_cert_selfsign
+
+- include_tasks: selfsign.yaml
+  loop: "{{ query('dict', ssl_certs) }}"
+  loop_control:
+    loop_var: cert
+  when: ssl_cert_selfsign
+

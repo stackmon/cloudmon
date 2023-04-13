@@ -1,0 +1,11 @@
+---
+# Playbook to stop PostgreSQL
+#
+- name: "Stopping PostgreSQL"
+  hosts: "{{ postgres_group_name | default('postgres') }}:!disabled"
+  become: true
+  tasks:
+    - name: Stop service
+      ansible.builtin.service:
+        name: "postgres"
+        state: "stopped"

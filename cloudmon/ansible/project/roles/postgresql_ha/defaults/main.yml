@@ -1,0 +1,22 @@
+---
+# defaults file for roles/postgres
+container_runtime: "/usr/bin/{{ container_command }}"
+
+postgres_os_user: "postgres"
+postgres_os_group: "postgres"
+postgres_cluster_name: "django"
+postgres_image: "quay.io/opentelekomcloud/patroni:15.2"
+postgres_haproxy_image: "docker.io/haproxy:2.7.3-alpine"
+
+packages: []
+
+postgres_data_dir: "/var/lib/postgresql"
+postgres_cluster_nodes: []
+
+state: "present"
+
+postgres_raft_password: "raft_pwd"
+postgres_admin_password: "admin_pwd"
+postgres_replicator_password: "replica_pwd"
+postgres_postgres_password: "postgresql_pwd"
+postgres_rewind_password: "rewind_pwd"

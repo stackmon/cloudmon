@@ -10,8 +10,9 @@ TimeoutSec=30s
 ExecStartPre=-{{ container_runtime }} rm "statsd"
 
 ExecStart={{ container_runtime }} run \
-  --network host \
   --name "statsd" \
+  -p 8125:8125/udp \
+  -p 8126:8126 \
 {% if container_command == 'podman' %}
   --log-opt=path=/dev/null \
 {% endif %}

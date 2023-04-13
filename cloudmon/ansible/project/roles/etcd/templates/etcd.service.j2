@@ -1,0 +1,55 @@
+[Unit]
+Description=ETCD
+Wants=syslog.service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+TimeoutSec=240s
+Restart=always
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} rm "etcd"
+
+# NODE(gtema): Podman 3.4 on Ubuntu Jammy is not having proper routing
+# and require --network=host
+ExecStart={{ container_runtime }} run \
+    --name "etcd" \
+{% if container_command == 'podman' %}
+#    --log-opt=path=/dev/null \
+{% endif %}
+    -p 2379:2379 \
+    -p 2380:2380 \
+    -v /etc/ssl/private/ca.pem:/etc/ssl/ca.crt:ro,Z \
+    -v /etc/ssl/private/host.crt:/etc/ssl/host.crt:ro,Z \
+    -v /etc/ssl/private/host.key:/etc/ssl/host.key:ro,Z \
+    -v /var/lib/etcd:/etcd-data:rw,Z \
+    {{ etcd_image }} \
+    /usr/local/bin/etcd \
+    --data-dir=/etcd-data \
+    --name {{ inventory_hostname }} \
+    --initial-advertise-peer-urls https://{{ internal_address }}:2380 \
+    --listen-peer-urls https://0.0.0.0:2380 \
+    --advertise-client-urls https://{{ internal_address }}:2379 \
+    --listen-client-urls https://0.0.0.0:2379 \
+    --initial-cluster {{ etcd_cluster | join(',') }} \
+    --initial-cluster-state {{ etcd_cluster_state }} \
+    --initial-cluster-token {{ etcd_cluster_token }} \
+    --peer-client-cert-auth \
+    --peer-trusted-ca-file=/etc/ssl/ca.crt \
+    --peer-cert-file=/etc/ssl/host.crt \
+    --peer-key-file=/etc/ssl/host.key \
+    --client-cert-auth \
+    --trusted-ca-file=/etc/ssl/ca.crt \
+    --cert-file=/etc/ssl/host.crt \
+    --key-file=/etc/ssl/host.key
+
+ExecReload=-{{ container_runtime }} stop "etcd"
+ExecReload=-{{ container_runtime }} rm "etcd"
+
+ExecStop={{ container_runtime }} stop "etcd"
+ExecStop={{ container_runtime }} rm "etcd"
+
+[Install]
+WantedBy=multi-user.target

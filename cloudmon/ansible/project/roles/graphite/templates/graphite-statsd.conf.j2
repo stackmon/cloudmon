@@ -58,8 +58,8 @@ server {
   listen [::]:443 ssl;
   server_name {{ inventory_hostname }};
 
-  ssl_certificate /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.crt;
-  ssl_certificate_key /etc/ssl/{{ inventory_hostname }}/{{ graphite_cert }}.pem;
+  ssl_certificate /etc/ssl/private/graphite.crt;
+  ssl_certificate_key /etc/ssl/private/graphite.key;
   root /opt/graphite/static;
   index index.html;
 

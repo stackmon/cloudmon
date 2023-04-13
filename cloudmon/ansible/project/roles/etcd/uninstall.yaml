@@ -1,0 +1,15 @@
+- name: Make sure the ETCD service stopped
+  become: true
+  ansible.builtin.systemd:
+    state: "stopped"
+    name: "etcd.service"
+    enabled: false
+
+- name: Remove ETCD data
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: "absent"
+  loop:
+    - /var/lib/etcd/member
+    - /etc/systemd/system/etcd.service

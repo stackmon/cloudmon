@@ -1,0 +1,30 @@
+---
+# Firewalld enablement
+
+- name: Allow pgsql port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    service: "postgresql"
+    permanent: "yes"
+    immediate: "yes"
+
+- name: Allow patroni api port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "8008/tcp"
+    permanent: "yes"
+    immediate: "yes"
+  notify:
+    - Reload firewalld
+
+- name: Allow patroni-ha api port
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "5000/tcp"
+    permanent: "yes"
+    immediate: "yes"
+  notify:
+    - Reload firewalld

@@ -1,0 +1,7 @@
+---
+packages:
+  - docker.io
+  - python3-psycopg2
+
+container_command: docker
+postgresql_data_dir: "/var/lib/postgresql"

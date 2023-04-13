@@ -1,0 +1,72 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-dashboard
+  labels:
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: "server"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: server
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: sdb
+          image: "quay.io/opentelekomcloud/stackmon-status-dashboard"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - name: "http"
+              containerPort: 5000
+
+          envFrom:
+            - secretRef:
+                name: "sdb-secrets"
+
+          env:
+            - name: "SDB_DEBUG"
+              value: "true"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          volumeMounts:
+            - name: "instance-config"
+              mountPath: "/app/instance/"
+
+      initContainers:
+        - name: "sdb-upgrade"
+          image: "quay.io/opentelekomcloud/stackmon-status-dashboard"
+          command: ["flask", "db", "upgrade"]
+          env:
+            - name: "SDB_DEBUG"
+              value: "true"
+            - name: "SDB_DATABASE_URI"
+              valueFrom:
+                secretKeyRef:
+                  name: "sdb-secrets"
+                  key: "SDB_DATABASE_URI"
+      volumes:
+        - name: "instance-config"
+          configMap:
+            name: "sdb-config"

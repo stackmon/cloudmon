@@ -1,0 +1,147 @@
+---
+- name: Include variables
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
+  vars:
+    params:
+      files: "{{ distro_lookup_path }}"
+      paths:
+        - "vars"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.package:
+    state: present
+    name: "{{ item }}"
+  loop:
+    - "{{ packages }}"
+  when: "ansible_facts.pkg_mgr != 'atomic_container'"
+  register: task_result
+  until: task_result is success
+  retries: 5
+
+- name: Construct cluster etcd nodes list
+  ansible.builtin.set_fact:
+    etcd_cluster_nodes: "{{ (etcd_cluster_nodes|default([])) + [item] }}"
+  loop: "{{ play_hosts }}"
+
+- name: Construct cluster nodes list
+  ansible.builtin.set_fact:
+    postgres_cluster_nodes: "{{ (postgres_cluster_nodes|default([])) + [item] }}"
+  loop: "{{ play_hosts }}"
+  when: "item != inventory_hostname"
+
+- ansible.builtin.include_tasks: firewall.yml
+
+- name: Create postgres group
+  become: yes
+  ansible.builtin.group:
+    name: "{{ postgres_os_group }}"
+    state: present
+  when: "postgres_os_group is defined"
+
+- name: Create postgresuser
+  become: true
+  ansible.builtin.user:
+    name: "{{ postgres_os_user }}"
+    group: "{{ postgres_os_group }}"
+    state: present
+  when:
+    - "postgres_os_group is defined"
+    - "postgres_os_user is defined"
+
+- name: Ensure directories exist
+  become: true
+  ansible.builtin.file:
+    state: "directory"
+    path: "{{ item.path }}"
+    mode: "{{ item.mode | default('0755') }}"
+    owner: "{{ item.owner | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+  loop:
+    - path: "/etc/postgres"
+      owner: "root"
+      group: "root"
+    - path: "/etc/postgres/ssl"
+      owner: "999"
+      group: "999"
+    - path: "/var/lib/postgresql/data"
+      owner: "999"
+      group: "999"
+      mode: "0700"
+    - path: "/var/lib/postgresql/patroni"
+      owner: "999"
+      group: "999"
+      mode: "0750"
+
+- name: Write SSL files
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode | default('0644') }}"
+    owner: "999"
+    group: "999"
+  loop:
+    - src: "{{ certs_path }}/ca/ca.pem"
+      dest: "/etc/postgres/ssl/ca.crt"
+    - src: "{{ certs_path }}/certs/{{ inventory_hostname }}.pem"
+      dest: "/etc/postgres/ssl/dcs.crt"
+    - src: "{{ certs_path }}/keys/{{ inventory_hostname }}.pem"
+      dest: "/etc/postgres/ssl/dcs.key"
+      mode: "0400"
+  notify:
+    - Restart postgres
+
+- name: Write Patroni config file
+  become: true
+  ansible.builtin.template:
+    src: "patroni.yaml.j2"
+    dest: "/etc/postgres/patroni.yaml"
+    mode: "0640"
+    owner: "999"
+    group: "999"
+  notify:
+    - Restart postgres
+
+- name: Write PostgreSQL Systemd unit file
+  become: true
+  ansible.builtin.template:
+    src: "postgres.service.j2"
+    dest: "/etc/systemd/system/postgres.service"
+    mode: "0644"
+  notify:
+    - Restart postgres
+
+- name: Write Haproxy config file
+  become: true
+  ansible.builtin.template:
+    src: "haproxy.cfg.j2"
+    dest: "/etc/postgres/haproxy.cfg"
+    mode: "0644"
+  notify:
+    - Restart haproxy
+
+- name: Write Haproxy Systemd unit file
+  become: true
+  ansible.builtin.template:
+    src: "haproxy.service.j2"
+    dest: "/etc/systemd/system/postgres-haproxy.service"
+    mode: "0644"
+  notify:
+    - Restart haproxy
+
+- name: Force all notified handlers to run at this point, not waiting for normal sync points
+  meta: flush_handlers
+
+- name: Make sure the Postgres service started
+  become: true
+  ansible.builtin.systemd:
+    state: started
+    name: "postgres.service"
+
+- name: Wait for postgres container to listen
+  become: true
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 5000
+    timeout: 120

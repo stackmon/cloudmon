@@ -1,0 +1,16 @@
+#!/bin/bash
+#Simple script to check health of carbonapi and restart if required
+
+count=0
+
+for i in $(seq 3);do
+  curl -s http://localhost:8082/lb_check -m 2 > /dev/null
+  if [ $? -ne 0 ];then
+    ((count=count+1))
+  fi
+  sleep 3
+done
+
+if [ $count -eq 3 ]; then
+  systemctl restart carbonapi && echo "$(date) - Carbonapi healthcheck returned non zero 3x in a row  - do restart" >> /tmp/$(hostname)-health-check.log
+fi

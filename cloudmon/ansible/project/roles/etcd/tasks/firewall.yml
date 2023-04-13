@@ -1,0 +1,14 @@
+---
+# Firewalld enablement
+- name: Allow ETCD ports
+  become: true
+  ansible.posix.firewalld:
+    state: "enabled"
+    port: "{{ item }}/tcp"
+    permanent: "yes"
+    immediate: "yes"
+  notify:
+    - Reload firewalld
+  loop:
+    - 2379
+    - 2380

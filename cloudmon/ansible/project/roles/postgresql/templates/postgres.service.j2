@@ -19,7 +19,7 @@ ExecStart={{ container_runtime }} run \
     -v postgresl_lib:/var/lib/postgresql/data \
     # WARNING: for the tiny install we do not want to take overhead of doing it
     # differently
-    -e POSTGRES_PASSWORD={{ postgres_root_password }} \
+    -e POSTGRES_PASSWORD={{ postgres_postgres_password }} \
     {{ postgres_image }}
 
 ExecReload=-{{ container_runtime }} stop "postgres"

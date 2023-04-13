@@ -16,23 +16,23 @@ import logging
 from git import exc
 from git import Repo
 
+from cloudmon.types import GitRepoModel
 
-def checkout_git_repository(repo_dir, repo):
-    logging.info(f"Checkout repo {repo['repo_url']} to {repo_dir}")
+
+def checkout_git_repository(repo_dir, repo: GitRepoModel):
+    logging.info(f"Checkout repo {repo.repo_url} to {repo_dir}")
     checkout_exists = repo_dir.exists()
     repo_dir.mkdir(parents=True, exist_ok=True)
-    branch = repo.get("repo_ref", "main")
+    branch = repo.repo_ref
     if not checkout_exists:
-        git_repo = Repo.clone_from(repo["repo_url"], repo_dir, branch=branch)
+        git_repo = Repo.clone_from(repo.repo_url, repo_dir, branch=branch)
     else:
         logging.debug(f"Checkout already exists")
         try:
             git_repo = Repo(repo_dir)
         except exc.NoSuchPathError:
             # folder is not a git repo?
-            git_repo = Repo.clone_from(
-                repo["repo_url"], repo_dir, branch=branch
-            )
+            git_repo = Repo.clone_from(repo.repo_url, repo_dir, branch=branch)
 
         git_repo.remotes.origin.fetch()
         git_repo.git.checkout(branch)
