@@ -19,13 +19,22 @@ from pydantic import Field
 
 
 class Kustomization(BaseModel):
+    """Basic Kustomization properties to use for overlay building"""
+
     __root__: dict
 
 
 class MonitoringZoneModel(BaseModel):
+    """Monitoring Zone"""
+
     name: str
+    """Zone name"""
+
     graphite_group_name: str = "graphite"
+    """ansible group name of the graphite hosts to use"""
+
     statsd_group_name: str = "statsd"
+    """ansible group name of the statsd hosts to use"""
 
 
 class MonitoringZonesModel(BaseModel):
@@ -42,27 +51,48 @@ class MonitoringZonesModel(BaseModel):
 
 
 class DatabaseUserModel(BaseModel):
+    """Database user"""
+
     name: str
+    """DB user name"""
     password: str
+    """DB user password"""
 
 
 class DatabaseInstanceModel(BaseModel):
+    """Database instance"""
+
     name: str
+    """DB name"""
     users: List[DatabaseUserModel]
+    """DB users list"""
 
 
 class DatabaseModel(BaseModel):
+    """Database configuration"""
+
     postgres_postgres_password: str
+    """Password of the postgres user (used to create Databases)"""
     ha_mode: bool = False
+    """HighAvailability mode (based on Patroni, requires SSL certificates
+    to be managed externally)"""
     databases: List[DatabaseInstanceModel]
+    """Databases list"""
 
 
 class StatusDashboardModel(BaseModel):
+    """Status Dashboard configuration"""
+
     name: str
+    """Instance name"""
     kube_context: str
+    """Kubernetes context to use for deployment"""
     kube_namespace: str
+    """Kubernetes namespace name for deploy"""
     domain_name: str
+    """FQDN"""
     kustomization: Kustomization
+    """Kustomize overlay options"""
 
 
 class StatusDashboardsModel(BaseModel):
@@ -70,9 +100,14 @@ class StatusDashboardsModel(BaseModel):
 
 
 class CloudCredentialModel(BaseModel):
+    """Cloud Credentials"""
+
     name: str
+    """Credential name (for reference)"""
     profile: str = None
+    """Optional OpenStack profile to use with credentials"""
     auth: dict
+    """Auth block (as in clouds.yaml)"""
 
 
 class CloudCredentialsModel(BaseModel):
@@ -89,8 +124,12 @@ class CloudCredentialsModel(BaseModel):
 
 
 class EnvZoneCloudModel(BaseModel):
+    """Environment Zone Cloud credentials entry"""
+
     name: str
+    """Cloud name (clouds.yaml) to use while deploying"""
     ref: str
+    """Reference to the cloud_credentials name to use"""
 
 
 class EnvZoneCloudsModel(BaseModel):
@@ -107,8 +146,12 @@ class EnvZoneCloudsModel(BaseModel):
 
 
 class EnvMonitoringZoneModel(BaseModel):
+    """Configuration of the monitoring zone for certain environment"""
+
     name: str
+    """Zone name"""
     clouds: List[EnvZoneCloudModel]
+    """List of cloud credentials to be deployed"""
 
 
 class EnvMonitoringZonesModel(BaseModel):
@@ -120,9 +163,14 @@ class EnvMonitoringZonesModel(BaseModel):
 
 
 class EnvironmentModel(BaseModel):
+    """Target environment to be tested"""
+
     name: str
+    """Environment name"""
     env: dict
+    """Environment variables to be set for this env"""
     monitoring_zones: EnvMonitoringZonesModel
+    """Monitoring zones from which environment will be tested"""
 
     def get_zone_by_name(self, name) -> EnvMonitoringZoneModel:
         for item in self.monitoring_zones.__root__:
@@ -143,60 +191,107 @@ class EnvironmentsModel(BaseModel):
 
 
 class GitRepoModel(BaseModel):
+    """Git repository"""
+
     repo_url: str
+    """Git repo url"""
     repo_ref: str = "main"
+    """Git repo reference (branch)"""
 
 
 class GrafanaDashboardRepoModel(GitRepoModel):
+    """Grafana dashboard repository configuration"""
+
     name: str
+    """Repository name"""
     path: str = "dashboards/grafana"
+    """Path to the dashboards definitions inside the repository"""
 
 
 class GrafanaModel(BaseModel):
+    """Grafana configuration"""
+
     api_url: str = None
+    """API url"""
     api_token: str = None
+    """API token"""
     datasources: List[dict]
+    """List of datasources to install into the Grafana instance"""
     k8_config: dict = None
+    """Kubernetes configuration to use for deploying Grafana to K8"""
     config: dict
+    """Configuration options to use for deploying on VMs"""
     dashboards: List[GrafanaDashboardRepoModel]
+    """List of dashboards to be managed in the instance"""
 
 
 class PluginApimonModel(BaseModel):
+    """ApiMon plugin configration"""
+
     name: str
+    """Plugin name"""
     type: Literal["apimon"]
     scheduler_image: str
+    """ApiMon scheduler image to use"""
     executor_image: str
+    """Executor image to use"""
     tests_projects: List[dict]
+    """List of git repositories with tests"""
 
 
 class PluginApimonRefModel(BaseModel):
+    """ApiMon plugin invocation"""
+
     name: str
+    """plugin name (as used in the plugins section)"""
     schedulers_inventory_group_name: str = "schedulers"
+    """ansible group name to deploy scheduler component"""
     executors_inventory_group_name: str = "executor"
+    """ansible group name to deploy executors"""
     tests_project: str
+    """Name of the project with tests (one from defined in
+    the plugin configuration)"""
     tasks: List[str] = list()
+    """Optional list of tasks (playbooks) to schedule"""
 
 
 class PluginEpmonModel(BaseModel):
+    """Endpoint Monitoring plugin"""
+
     name: str
+    """plugin name"""
     type: Literal["epmon"]
     image: str
+    """Epmon image to use"""
     config: str
-    # cloud_name: str = None
-    # config_elements: List[str] = list()
+    """Path to the epmon configuration elements
+    (which service which endpoints)
+    """
 
 
 class PluginEpmonRefModel(BaseModel):
+    """Epmon plugin invocation"""
+
     name: str
+    """plugin name"""
     cloud_name: str = None
+    """Cloud name to test in the environment"""
     config_elements: List[str] = list()
+    """List of configuration entries of the epmon"""
     epmon_inventory_group_name: str = "epmons"
+    """ansible group name to deploy epmon process"""
 
 
 class PluginGeneralModel(BaseModel):
+    """General plugin"""
+
     name: str
+    """plugin name"""
     type: Literal["general"]
     init_image: str
+    """Init image (this image is invoked to optionally initialize infrastructure
+    for further testing)
+    """
 
 
 class PluginModel(BaseModel):
@@ -212,23 +307,49 @@ class PluginRefModel(BaseModel):
 
 
 class MatrixModel(BaseModel):
+    """Testing Matrix entry"""
+
     env: str
+    """Environment to test"""
+
     monitoring_zone: str
+    """From which monitoring zone to test"""
+
     db_entry: str
+    """Which DB to use for storing logs"""
+
     plugins: List[
         Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel]
     ]
+    """Which plugins to use for testing"""
 
 
 class ConfigModel(BaseModel):
+    """CloudMon Config"""
+
     clouds_credentials: CloudCredentialsModel
+    """Cloud Credentials section"""
+
     database: DatabaseModel
+    """Databases configuration"""
+
     environments: EnvironmentsModel
+    """Environments to be tested"""
+
     grafana: GrafanaModel = None
+    """Grafana configuration"""
+
     matrix: List[MatrixModel]
+    """Testing matrix (where to, from where and what)"""
+
     monitoring_zones: MonitoringZonesModel
+    """Monitoring zones from which to test"""
+
     plugins: List[PluginModel]
+    """Registered plugins to enable for testing"""
+
     status_dashboard: StatusDashboardsModel = None
+    """Status dashboard configuration"""
 
     def get_env_by_name(self, name) -> EnvironmentModel:
         for item in self.environments.__root__:

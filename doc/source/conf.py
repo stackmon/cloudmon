@@ -14,16 +14,16 @@
 
 import os
 import sys
-
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../'))
 # -- General configuration ----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'otcdocstheme',
-    #'sphinx.ext.intersphinx',
+    'sphinx_rtd_theme',
+    'cliff.sphinxext',
+    'sphinxcontrib.autodoc_pydantic',
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
@@ -57,7 +57,7 @@ pygments_style = 'native'
 # html_theme_path = ["."]
 # html_theme = '_theme'
 # html_static_path = ['static']
-html_theme = 'otcdocs'
+html_theme = 'sphinx_rtd_theme'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
@@ -72,5 +72,6 @@ latex_documents = [
      'Open Telekom Cloud Developers', 'manual'),
 ]
 
+autoprogram_cliff_application = 'cloudmon'
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
