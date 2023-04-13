@@ -5,6 +5,8 @@
       Deploy CloudMon
     pre-run: playbooks/pre.yaml
     run: playbooks/run.yaml
+    files:
+      - ^cloudmon/*
     vars:
       python_version: "3.10"
 
