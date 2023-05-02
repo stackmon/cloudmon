@@ -1,0 +1,17 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metrics-processor
+spec:
+  rules:
+    - host: metrics
+      http:
+        paths:
+          - backend:
+              service:
+                name: metrics-processor
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix

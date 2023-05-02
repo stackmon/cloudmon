@@ -15,7 +15,6 @@ import logging
 from pathlib import Path
 import shutil
 import sys
-import tempfile
 
 from ruamel.yaml import YAML
 
@@ -56,7 +55,6 @@ class CloudMon(App):
             default="ansible/inventory",
             help="specify the Inventory path",
         )
-
         return parser
 
     def initialize_app(self, argv):
@@ -65,15 +63,11 @@ class CloudMon(App):
         self.config = CloudMonConfig()
 
         if "help" not in argv:
-            if not self.options.private_data_dir:
-                self.config.private_data_dir = Path(
-                    tempfile.mkdtemp(prefix="cloudmon")
-                )
-                self.is_priv_tmp = True
-            else:
+            if self.options.private_data_dir:
                 self.config.private_data_dir = Path(
                     self.options.private_data_dir
                 ).resolve()
+                self.is_priv_tmp = False
 
             if (
                 self.options.config is not None
@@ -113,20 +107,6 @@ class CloudMon(App):
 
         if self.is_priv_tmp and self.config.private_data_dir:
             shutil.rmtree(self.config.private_data_dir)
-
-
-#    def process_inventory(self):
-#        """Pre-process passed inventory"""
-#        if "graphite" in self.inventory:
-#            random_graphite_host = self.inventory["graphite"]["hosts"][0]
-#            graphite_host_vars = self.inventory["_meta"]["hostvars"].get(
-#                random_graphite_host
-#            )
-#            self.graphite_address = graphite_host_vars.get(
-#                "internal_address", random_graphite_host
-#            )
-#        elif "graphite" in self.config.config:
-#            self.graphite_address = self.config.config["graphite"].get("host")
 
 
 def main(argv=sys.argv[1:]):

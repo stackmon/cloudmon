@@ -146,7 +146,7 @@ class TestApimon(base.TestCase):
         manager.stop(self.Opts())
         calls = [
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="stop_executors.yaml",
@@ -155,7 +155,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="stop_schedulers.yaml",
@@ -164,7 +164,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="stop_executors.yaml",
@@ -173,7 +173,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="stop_schedulers.yaml",
@@ -194,7 +194,7 @@ class TestApimon(base.TestCase):
         manager.start(self.Opts())
         calls = [
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="start_executors.yaml",
@@ -203,7 +203,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="start_schedulers.yaml",
@@ -212,7 +212,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="start_executors.yaml",
@@ -221,7 +221,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="start_schedulers.yaml",
@@ -242,7 +242,7 @@ class TestApimon(base.TestCase):
         manager.provision(self.Opts())
         calls = [
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="install_scheduler.yaml",
@@ -306,7 +306,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="install_scheduler.yaml",
@@ -370,7 +370,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="install_executor.yaml",
@@ -401,7 +401,7 @@ class TestApimon(base.TestCase):
                 verbosity=1,
             ),
             mock.call(
-                private_data_dir=None,
+                private_data_dir=mock.ANY,
                 artifact_dir=".cloudmon_artifact",
                 project_dir=config.project_dir.as_posix(),
                 playbook="install_executor.yaml",

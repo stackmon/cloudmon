@@ -176,7 +176,7 @@ class TestEpmon(base.TestCase):
 
         manager.stop(None)
         runner_mock.assert_called_with(
-            private_data_dir=None,
+            private_data_dir=mock.ANY,
             artifact_dir=".cloudmon_artifact",
             project_dir=config.project_dir.as_posix(),
             playbook="stop_epmon.yaml",
@@ -198,7 +198,7 @@ class TestEpmon(base.TestCase):
 
         manager.start(None)
         runner_mock.assert_called_with(
-            private_data_dir=None,
+            private_data_dir=mock.ANY,
             artifact_dir=".cloudmon_artifact",
             project_dir=config.project_dir.as_posix(),
             playbook="start_epmon.yaml",
@@ -220,7 +220,7 @@ class TestEpmon(base.TestCase):
 
         manager.provision(None)
         runner_mock.assert_called_with(
-            private_data_dir=None,
+            private_data_dir=mock.ANY,
             artifact_dir=".cloudmon_artifact",
             project_dir=config.project_dir.as_posix(),
             playbook="install_epmon.yaml",
