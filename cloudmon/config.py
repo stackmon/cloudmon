@@ -23,11 +23,17 @@ from ruamel.yaml import YAML
 from cloudmon.types import ConfigModel
 
 
+primitive_types = (int, str, bool, float)
+str_types = str
+list_types = (list, tuple)
+
+
 class CloudMonConfig:
     log = logging.getLogger(__name__)
 
     def __init__(self):
         self.config = None
+        self.config_dir = None
         self.inventory = None
         self.inventory_path = None
         self.apimon_configs = dict()
@@ -126,12 +132,28 @@ class CloudMonConfig:
             )
         return data.get(cloud_name)
 
-    def parse(self, fname):
+    def parse(
+        self, fname: str, config_dir: Path = ".", config_dir2: Path = None
+    ):
+        """Parse config
+
+        :param str fname: Config file name
+        :param Path config_dir: first directory with config file (values take
+            priority)
+        :param Path config_dir: optional supplementary directory content from
+            which will be merged with the one from config_dir
+        """
         xyaml = YAML()
         source = dict()
-        with open(fname, "r") as f:
+
+        with open(Path(config_dir, fname), "r") as f:
             source = yaml.safe_load(f)
             self.config = xyaml.load(f)
+
+        if config_dir2 and config_dir2.exists():
+            with open(Path(config_dir2, fname), "r") as f:
+                supp_source = yaml.safe_load(f)
+                source = self._deepmerge(supp_source, source)
 
         self.model = ConfigModel(**source)
 
@@ -146,3 +168,70 @@ class CloudMonConfig:
         )
         self.inventory = out
         self.inventory_path = inventory_path.as_posix()
+
+    def _deepmerge(self, a, b):
+        """Merge two objects"""
+        if a is None or isinstance(b, primitive_types):
+            a = b
+        elif isinstance(a, list_types):
+            if isinstance(b, list_types):
+                a.extend(
+                    bitem
+                    for bitem in b
+                    if bitem not in a
+                    and (
+                        isinstance(bitem, primitive_types)
+                        or isinstance(bitem, list_types)
+                    )
+                )
+                srcdicts = {}
+                for bitem in b:
+                    # convert b side list to dict by "name"
+                    if isinstance(bitem, dict) and "name" in bitem:
+                        srcdicts.update({bitem["name"]: bitem})
+                for k, aitem in enumerate(a):
+                    if isinstance(aitem, dict):
+                        if "name" in aitem and aitem["name"] in srcdicts:
+                            # we merge only if name in dict is matching
+                            a[k] = self._deepmerge(
+                                aitem, srcdicts[aitem["name"]]
+                            )
+                            del srcdicts[aitem["name"]]
+                for k, v in srcdicts.items():
+                    a.append(v)
+            else:
+                raise ValueError(
+                    "can not merge %s with %s"
+                    % (
+                        a,
+                        b,
+                    )
+                )
+        elif isinstance(a, dict):
+            if isinstance(b, dict):
+                for k in b:
+                    if k in a:
+                        a[k] = self._deepmerge(a[k], b[k])
+                    else:
+                        a[k] = b[k]
+            elif isinstance(b, list_types):
+                for bd in b:
+                    if isinstance(bd, dict):
+                        a = self._deepmerge(a, bd)
+                    else:
+                        raise ValueError(
+                            "can not merge element from list %s with %s"
+                            % (
+                                a,
+                                b,
+                            )
+                        )
+            else:
+                raise ValueError(
+                    "can not merge %s with %s"
+                    % (
+                        a,
+                        b,
+                    )
+                )
+        return a

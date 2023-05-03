@@ -37,13 +37,14 @@ class MetricsProcessorManager:
         utils.copy_kustomize_app_base(kustomize_base_dir, "metrics_processor")
         overlays_dir = Path(kustomize_base_dir, "overlays")
         base = "../../base"
+        print(self.config)
         for instance in self.config.model.metrics_processor.__root__:
             overlay_dir = utils.prepare_kustomize_overlay(
                 overlays_dir=overlays_dir,
                 base=base,
                 name=instance.name,
                 kustomization=instance.kustomization.__root__,
-                config_dir=options.config_dir,
+                config_dir=self.config.config_dir,
             )
 
             res = utils.apply_kustomize(

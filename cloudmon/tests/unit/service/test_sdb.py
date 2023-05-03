@@ -55,7 +55,6 @@ class TestSDB(base.TestCase):
 
         def __init__(self):
             self.component = None
-            self.config_dir = None
 
     @mock.patch(
         "subprocess.run", autospec=True, return_value=mock.MagicMock(rc=0)

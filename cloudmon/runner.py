@@ -22,6 +22,8 @@ from cliff.app import App
 from cliff.commandmanager import CommandManager
 
 from cloudmon.config import CloudMonConfig
+from cloudmon.types import GitRepoModel
+from cloudmon import utils
 
 
 class CloudMon(App):
@@ -34,17 +36,27 @@ class CloudMon(App):
         )
         self.config = None
         self.inventory = None
-        self.is_priv_tmp = False
+        self.is_priv_tmp = True
 
     def build_option_parser(self, description, version, argparse_kwargs=None):
         parser = super().build_option_parser(
             description, version, argparse_kwargs
         )
         parser.add_argument(
+            "--config-dir",
+            help="Specify the config directory",
+        )
+        parser.add_argument(
             "--config",
-            dest="config",
             default="config.yaml",
-            help="specify the config file",
+            help="Specify the config file name (relative to config-dir)",
+        )
+        parser.add_argument(
+            "--config-repo",
+            help=(
+                "Specify Git repository with supplementary configs. "
+                "(config file must be same as `--config`)"
+            ),
         )
         parser.add_argument(
             "--private-data-dir",
@@ -52,8 +64,8 @@ class CloudMon(App):
         )
         parser.add_argument(
             "--inventory",
-            default="ansible/inventory",
-            help="specify the Inventory path",
+            default="inventory.yaml",
+            help="Specify the Inventory path (relative to `--config-dir`)",
         )
         return parser
 
@@ -69,19 +81,44 @@ class CloudMon(App):
                 ).resolve()
                 self.is_priv_tmp = False
 
+            final_config_dir = Path(self.config.private_data_dir, "_config")
+            # final_config_dir.mkdir(parents=True, exist_ok=True)
+            config_dir2 = None
+            if self.options.config_repo is not None:
+                # Checkout config-repo into separate dir and use it as a base
+                # in final_config_dir
+                config_dir2 = Path(self.config.private_data_dir, "config_repo")
+                repo = GitRepoModel(repo_url=self.options.config_repo)
+                utils.checkout_git_repository(config_dir2, repo)
+                shutil.copytree(
+                    config_dir2, final_config_dir, dirs_exist_ok=True
+                )
+
             if (
-                self.options.config is not None
-                and Path(self.options.config).exists()
+                self.options.config_dir is not None
+                and self.options.config is not None
+                and Path(self.options.config_dir, self.options.config).exists()
                 and self.options.inventory is not None
-                and Path(self.options.inventory).exists()
+                and Path(
+                    self.options.config_dir, self.options.inventory
+                ).exists()
             ):
-                self.config.parse(self.options.config)
-                # yaml = YAML()
-                # with open(self.options.config, "r") as f:
-                #     self.config.config = yaml.load(f)
+                shutil.copytree(
+                    self.options.config_dir,
+                    final_config_dir,
+                    dirs_exist_ok=True,
+                )
+                self.config.config_dir = final_config_dir
+                self.config.parse(
+                    self.options.config,
+                    Path(self.options.config_dir).resolve(),
+                    config_dir2,
+                )
 
                 self.config.process_inventory(
-                    Path(self.options.inventory).resolve()
+                    Path(
+                        self.options.config_dir, self.options.inventory
+                    ).resolve()
                 )
 
     def prepare_to_run_command(self, cmd):

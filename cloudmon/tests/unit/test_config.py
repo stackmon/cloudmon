@@ -16,8 +16,12 @@ test_config
 
 Tests for `cloudmon.config` module.
 """
+from pathlib import Path
+import tempfile
 
 from cloudmon.tests.unit import base
+
+from cloudmon.config import CloudMonConfig
 
 
 class TestConfig(base.TestCase):
@@ -62,6 +66,55 @@ class TestConfig(base.TestCase):
           graphite_group_name: g3
           statsd_group_name: g4
       plugins: []
+    """
+    cfg2_part1 = """
+      clouds_credentials:
+        - name: c1
+          profile: b1
+        - name: c2
+          profile: b2
+      database:
+        databases:
+          - name: d1
+            users:
+              - name: d1u1
+      environments:
+        - name: e1
+          env:
+            OS_CLOUD: 1
+          monitoring_zones:
+            - name: z1
+              clouds:
+                - name: e1
+                  ref: c1
+                - name: x
+                  ref: x1
+      matrix: []
+      monitoring_zones:
+        - name: zone1
+          graphite_group_name: g1
+          statsd_group_name: g2
+        - name: zone2
+          graphite_group_name: g3
+          statsd_group_name: g4
+      plugins: []
+    """
+    cfg2_part2 = """
+      clouds_credentials:
+        - name: c1
+          profile: xb1
+          auth:
+            x: y1
+        - name: c2
+          auth:
+            x: y2
+      database:
+        postgres_postgres_password: abc
+        databases:
+          - name: d1
+            users:
+              - name: d1u1
+                password: d1u1p
     """
 
     def test_config_get_env_clouds_credentials(self):
@@ -138,3 +191,80 @@ class TestConfig(base.TestCase):
         )
         self.assertEqual("1.2.3.4", config.get_graphite_zone_address("zone1"))
         self.assertEqual("3.4.5.6", config.get_graphite_zone_address("zone2"))
+
+    def test_config_merge(self):
+        config = CloudMonConfig()
+        with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:  # noqa
+            with open(Path(dir1, "config.yaml"), "w") as cfg1, open(
+                Path(dir2, "config.yaml"), "w"
+            ) as cfg2:
+                cfg1.write(self.cfg2_part1)
+                cfg1.seek(0)
+                cfg2.write(self.cfg2_part2)
+                cfg2.seek(0)
+                config.parse("config.yaml", Path(dir1), Path(dir2))
+
+                self.maxDiff = None
+                self.assertEqual(
+                    [
+                        {
+                            "name": "c1",
+                            "profile": "b1",
+                            "auth": {"x": "y1"},
+                        },
+                        {
+                            "name": "c2",
+                            "profile": "b2",
+                            "auth": {"x": "y2"},
+                        },
+                    ],
+                    config.model.clouds_credentials.dict()["__root__"],
+                )
+                self.assertEqual(
+                    [
+                        {
+                            "name": "e1",
+                            "env": {"OS_CLOUD": 1},
+                            "monitoring_zones": [
+                                {
+                                    "name": "z1",
+                                    "clouds": [
+                                        {"name": "e1", "ref": "c1"},
+                                        {"name": "x", "ref": "x1"},
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                    config.model.environments.dict()["__root__"],
+                )
+                self.assertEqual(
+                    [
+                        {
+                            "name": "zone1",
+                            "graphite_group_name": "g1",
+                            "statsd_group_name": "g2",
+                        },
+                        {
+                            "name": "zone2",
+                            "graphite_group_name": "g3",
+                            "statsd_group_name": "g4",
+                        },
+                    ],
+                    config.model.monitoring_zones.dict()["__root__"],
+                )
+                self.assertDictEqual(
+                    {
+                        "postgres_postgres_password": "abc",
+                        "ha_mode": False,
+                        "databases": [
+                            {
+                                "name": "d1",
+                                "users": [
+                                    {"name": "d1u1", "password": "d1u1p"}
+                                ],
+                            }
+                        ],
+                    },
+                    config.model.database.dict(),
+                )
