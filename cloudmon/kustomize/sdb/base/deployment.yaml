@@ -70,3 +70,4 @@ spec:
         - name: "instance-config"
           configMap:
             name: "sdb-config"
+  revisionHistoryLimit: 2

@@ -43,6 +43,7 @@ class StatusDashboardManager:
                 base=base,
                 name=instance.name,
                 kustomization=instance.kustomization.__root__,
+                config_dir=options.config_dir,
             )
 
             res = utils.apply_kustomize(

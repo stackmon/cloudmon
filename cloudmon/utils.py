@@ -77,6 +77,7 @@ def prepare_kustomize_overlay(
     overlay_dir = Path(overlays_dir, name)
     overlay_dir.mkdir(parents=True, exist_ok=True)
     with open(Path(overlay_dir, "kustomization.yaml"), "w") as f:
+        logging.debug("Dumping overlay kustomization file")
         yaml.dump(new_kustomization, f)
 
     if kustomize_overlay_extra_files:
@@ -89,6 +90,7 @@ def prepare_kustomize_overlay(
             src = Path(config_dir, extra_file)
             dest = Path(overlay_dir, extra_file)
             if src.exists():
+                logging.debug("Preparing %s for kustomize deploy" % src)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(src, dest)
 
