@@ -14,6 +14,7 @@
 import importlib.resources
 import logging
 from pathlib import Path
+import tempfile
 import yaml
 
 import ansible_runner
@@ -59,6 +60,8 @@ class CloudMonConfig:
             ]
         )
         self.is_updated = False
+
+        self.private_data_dir = Path(tempfile.mkdtemp(prefix="cloudmon"))
 
     def hostvars(self, host=None):
         hostvars = self.inventory["_meta"]["hostvars"]

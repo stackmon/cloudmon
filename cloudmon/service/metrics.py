@@ -20,7 +20,7 @@ from jinja2 import PackageLoader
 from cloudmon import utils
 
 
-class StatusDashboardManager:
+class MetricsProcessorManager:
     log = logging.getLogger(__name__)
 
     def __init__(self, cloudmon_config):
@@ -29,20 +29,21 @@ class StatusDashboardManager:
         self.env = Environment(loader=PackageLoader("cloudmon"))
 
     def provision(self, options):
-        """Provision Status Dashboard"""
+        """Provision Metrics Processor"""
 
         kustomize_base_dir = Path(
-            self.config.private_data_dir, "kustomize", "sdb"
+            self.config.private_data_dir, "kustomize", "metrics_processor"
         )
-        utils.copy_kustomize_app_base(kustomize_base_dir, "sdb")
+        utils.copy_kustomize_app_base(kustomize_base_dir, "metrics_processor")
         overlays_dir = Path(kustomize_base_dir, "overlays")
         base = "../../base"
-        for instance in self.config.model.status_dashboard.__root__:
+        for instance in self.config.model.metrics_processor.__root__:
             overlay_dir = utils.prepare_kustomize_overlay(
                 overlays_dir=overlays_dir,
                 base=base,
                 name=instance.name,
                 kustomization=instance.kustomization.__root__,
+                config_dir=options.config_dir,
             )
 
             res = utils.apply_kustomize(

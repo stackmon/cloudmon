@@ -18,29 +18,21 @@ from pydantic import BaseModel
 from pydantic import Field
 
 
-class Kustomization(BaseModel):
-    """Basic Kustomization properties to use for overlay building"""
-
-    __root__: dict
-
-
-class MonitoringZoneModel(BaseModel):
-    """Monitoring Zone"""
+class CloudCredentialModel(BaseModel):
+    """Cloud Credentials"""
 
     name: str
-    """Zone name"""
-
-    graphite_group_name: str = "graphite"
-    """ansible group name of the graphite hosts to use"""
-
-    statsd_group_name: str = "statsd"
-    """ansible group name of the statsd hosts to use"""
+    """Credential name (for reference)"""
+    profile: str = None
+    """Optional OpenStack profile to use with credentials"""
+    auth: dict
+    """Auth block (as in clouds.yaml)"""
 
 
-class MonitoringZonesModel(BaseModel):
-    __root__: List[MonitoringZoneModel]
+class CloudCredentialsModel(BaseModel):
+    __root__: List[CloudCredentialModel]
 
-    def get_by_name(self, name) -> MonitoringZoneModel:
+    def get_by_name(self, name) -> CloudCredentialModel:
         for item in self.__root__:
             if item.name == name:
                 return item
@@ -78,49 +70,6 @@ class DatabaseModel(BaseModel):
     to be managed externally)"""
     databases: List[DatabaseInstanceModel]
     """Databases list"""
-
-
-class StatusDashboardModel(BaseModel):
-    """Status Dashboard configuration"""
-
-    name: str
-    """Instance name"""
-    kube_context: str
-    """Kubernetes context to use for deployment"""
-    kube_namespace: str
-    """Kubernetes namespace name for deploy"""
-    domain_name: str
-    """FQDN"""
-    kustomization: Kustomization
-    """Kustomize overlay options"""
-
-
-class StatusDashboardsModel(BaseModel):
-    __root__: List[StatusDashboardModel]
-
-
-class CloudCredentialModel(BaseModel):
-    """Cloud Credentials"""
-
-    name: str
-    """Credential name (for reference)"""
-    profile: str = None
-    """Optional OpenStack profile to use with credentials"""
-    auth: dict
-    """Auth block (as in clouds.yaml)"""
-
-
-class CloudCredentialsModel(BaseModel):
-    __root__: List[CloudCredentialModel]
-
-    def get_by_name(self, name) -> CloudCredentialModel:
-        for item in self.__root__:
-            if item.name == name:
-                return item
-
-    def items(self):
-        for item in self.__root__:
-            yield (item.name, item)
 
 
 class EnvZoneCloudModel(BaseModel):
@@ -225,6 +174,59 @@ class GrafanaModel(BaseModel):
     """List of dashboards to be managed in the instance"""
 
 
+class Kustomization(BaseModel):
+    """Basic Kustomization properties to use for overlay building"""
+
+    __root__: dict
+
+
+class MetricsProcessorModel(BaseModel):
+    """Metrics Processor configuration"""
+
+    name: str
+    """Instance name"""
+    kube_context: str
+    """Kubernetes context to use for deployment"""
+    kube_namespace: str
+    """Kubernetes namespace name for deploy"""
+    domain_name: str
+    """FQDN"""
+    kustomization: Kustomization
+    """Kustomize overlay options"""
+
+
+class MetricsProcessorsModel(BaseModel):
+    """Metrics Processor list"""
+
+    __root__: List[MetricsProcessorModel]
+
+
+class MonitoringZoneModel(BaseModel):
+    """Monitoring Zone"""
+
+    name: str
+    """Zone name"""
+
+    graphite_group_name: str = "graphite"
+    """ansible group name of the graphite hosts to use"""
+
+    statsd_group_name: str = "statsd"
+    """ansible group name of the statsd hosts to use"""
+
+
+class MonitoringZonesModel(BaseModel):
+    __root__: List[MonitoringZoneModel]
+
+    def get_by_name(self, name) -> MonitoringZoneModel:
+        for item in self.__root__:
+            if item.name == name:
+                return item
+
+    def items(self):
+        for item in self.__root__:
+            yield (item.name, item)
+
+
 class PluginApimonModel(BaseModel):
     """ApiMon plugin configration"""
 
@@ -306,6 +308,25 @@ class PluginRefModel(BaseModel):
     ]
 
 
+class StatusDashboardModel(BaseModel):
+    """Status Dashboard configuration"""
+
+    name: str
+    """Instance name"""
+    kube_context: str
+    """Kubernetes context to use for deployment"""
+    kube_namespace: str
+    """Kubernetes namespace name for deploy"""
+    domain_name: str
+    """FQDN"""
+    kustomization: Kustomization
+    """Kustomize overlay options"""
+
+
+class StatusDashboardsModel(BaseModel):
+    __root__: List[StatusDashboardModel]
+
+
 class MatrixModel(BaseModel):
     """Testing Matrix entry"""
 
@@ -341,6 +362,8 @@ class ConfigModel(BaseModel):
 
     matrix: List[MatrixModel]
     """Testing matrix (where to, from where and what)"""
+
+    metrics_processor: MetricsProcessorsModel = None
 
     monitoring_zones: MonitoringZonesModel
     """Monitoring zones from which to test"""
