@@ -22,19 +22,6 @@ class StatusDashboardProvision(Command):
     "Provision StatusDashboard service"
     log = logging.getLogger(__name__)
 
-    def get_parser(self, prog_name):
-        parser = super().get_parser(prog_name)
-
-        parser.add_argument(
-            "--config-dir",
-            help=(
-                "Directory with additional configuration content (i.e. "
-                "config files)"
-            ),
-        )
-
-        return parser
-
     def take_action(self, parsed_args):
         self.log.info("Provisioning Status Dashboard")
         manager = StatusDashboardManager(self.app.config)
