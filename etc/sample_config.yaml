@@ -44,7 +44,7 @@ plugins:
   - name: epmon
     type: epmon
     image: quay.io/opentelekomcloud/apimon:change_35_latest
-    config: etc/sample_config_epmon.yaml
+    config: sample_config_epmon.yaml
   - name: lb
     type: general
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb

@@ -5,11 +5,9 @@ metadata:
   name: metrics-processor
   labels:
     app.kubernetes.io/app: metrics-processor
-    app.kubernetes.io/component: convertor
 spec:
   selector:
     app.kubernetes.io/app: metrics-processor
-    app.kubernetes.io/component: convertor
   ports:
     - name: "api"
       port: 80

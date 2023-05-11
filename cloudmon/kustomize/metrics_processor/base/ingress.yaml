@@ -10,8 +10,8 @@ spec:
         paths:
           - backend:
               service:
-                name: metrics-processor
+                name: "metrics-processor"
                 port:
-                  number: 80
+                  name: "api"
             path: /
             pathType: Prefix

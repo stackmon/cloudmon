@@ -53,6 +53,7 @@ spec:
           volumeMounts:
             - name: "instance-config"
               mountPath: "/app/instance/"
+              readOnly: true
 
       initContainers:
         - name: "sdb-upgrade"

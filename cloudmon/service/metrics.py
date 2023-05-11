@@ -13,6 +13,7 @@
 
 import logging
 from pathlib import Path
+import yaml
 
 from jinja2 import Environment
 from jinja2 import PackageLoader
@@ -37,8 +38,17 @@ class MetricsProcessorManager:
         utils.copy_kustomize_app_base(kustomize_base_dir, "metrics_processor")
         overlays_dir = Path(kustomize_base_dir, "overlays")
         base = "../../base"
-        print(self.config)
-        for instance in self.config.model.metrics_processor.__root__:
+        for instance in self.config.model.metrics_processor:
+            cm_gen = instance.kustomization.__root__.setdefault(
+                "configMapGenerator", []
+            )
+            cm_gen.append(
+                dict(
+                    name="metrics-processor-config",
+                    behavior="merge",
+                    files=["config.yaml"],
+                )
+            )
             overlay_dir = utils.prepare_kustomize_overlay(
                 overlays_dir=overlays_dir,
                 base=base,
@@ -46,6 +56,35 @@ class MetricsProcessorManager:
                 kustomization=instance.kustomization.__root__,
                 config_dir=self.config.config_dir,
             )
+
+            with open(Path(overlay_dir, "config.yaml"), "w") as fp:
+                mp_config = dict(
+                    datasource=dict(
+                        url=instance.datasource_url,
+                        type=instance.datasource_type,
+                    ),
+                    environments=[i.dict() for i in instance.environments],
+                    server={"port": 3005},
+                )
+                if instance.status_dashboard_instance_name:
+                    sdb = self.config.model.get_sdb_by_name(
+                        instance.status_dashboard_instance_name
+                    )
+                    if not sdb:
+                        raise ValueError(
+                            "status dashboard %s is refered from metrics "
+                            "processor, but not defined"
+                            % instance.status_dashboard_instance_name
+                        )
+                    mp_config.update(
+                        dict(
+                            status_dashboard=dict(
+                                secret=sdb.api_secret,
+                                url="https://" + sdb.domain_name,
+                            )
+                        )
+                    )
+                yaml.dump(mp_config, fp)
 
             res = utils.apply_kustomize(
                 overlay_dir=overlay_dir,

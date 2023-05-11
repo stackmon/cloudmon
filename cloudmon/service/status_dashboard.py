@@ -37,7 +37,7 @@ class StatusDashboardManager:
         utils.copy_kustomize_app_base(kustomize_base_dir, "sdb")
         overlays_dir = Path(kustomize_base_dir, "overlays")
         base = "../../base"
-        for instance in self.config.model.status_dashboard.__root__:
+        for instance in self.config.model.status_dashboard:
             overlay_dir = utils.prepare_kustomize_overlay(
                 overlays_dir=overlays_dir,
                 base=base,
