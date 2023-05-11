@@ -17,7 +17,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-        - name: convertor
+        - name: "convertor"
           command: ["cloudmon-metrics-convertor"]
           image: "quay.io/stackmon/metrics-processor"
           imagePullPolicy: "IfNotPresent"
@@ -54,10 +54,12 @@ spec:
           volumeMounts:
             - name: "instance-config"
               mountPath: "/cloudmon/config.yaml"
+              readOnly: true
               subPath: "config.yaml"
             - name: "instance-confd"
               mountPath: "/cloudmon/conf.d"
-        - name: reporter
+              readOnly: true
+        - name: "reporter"
           command: ["cloudmon-metrics-reporter"]
 
           image: "quay.io/stackmon/metrics-processor"
@@ -80,9 +82,11 @@ spec:
           volumeMounts:
             - name: "instance-config"
               mountPath: "/cloudmon/config.yaml"
+              readOnly: true
               subPath: "config.yaml"
             - name: "instance-confd"
               mountPath: "/cloudmon/conf.d"
+              readOnly: true
 
       volumes:
         - name: "instance-config"

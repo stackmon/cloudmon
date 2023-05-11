@@ -37,11 +37,24 @@ class TestMetrics(base.TestCase):
         - name: m1
           kube_context: m1_context
           kube_namespace: m1_ns
+          datasource_url: fake_url
+          status_dashboard_instance_name: sdb1
+          environments:
+            - name: e1
+              attributes:
+                foo: bar
           domain_name: fqdn
           kustomization:
             foo: bar
       monitoring_zones: []
       plugins: []
+      status_dashboard:
+        - name: sdb1
+          domain_name: sdb_url
+          kube_context: foo
+          kube_namespace: bar
+          kustomization: {}
+          api_secret: secr
     """
     inventory = """
     """
@@ -84,9 +97,32 @@ class TestMetrics(base.TestCase):
             self.assertDictEqual(
                 {
                     "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                    "configMapGenerator": [
+                        {
+                            "behavior": "merge",
+                            "files": ["config.yaml"],
+                            "name": "metrics-processor-config",
+                        }
+                    ],
                     "foo": "bar",
                     "kind": "Kustomization",
                     "resources": ["../../base"],
                 },
                 kust,
+            )
+        with open(Path(overlay_dir, "config.yaml")) as fp:
+            mp_config = yaml.safe_load(fp)
+            self.assertDictEqual(
+                {
+                    "datasource": {"type": "graphite", "url": "fake_url"},
+                    "environments": [
+                        {"attributes": {"foo": "bar"}, "name": "e1"}
+                    ],
+                    "server": {"port": 3005},
+                    "status_dashboard": {
+                        "secret": "secr",
+                        "url": "https://sdb_url",
+                    },
+                },
+                mp_config,
             )

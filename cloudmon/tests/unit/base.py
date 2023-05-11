@@ -32,6 +32,7 @@ class TestCase(TestCase):
             cfg.write(content.encode())
             cfg.seek(0)
             config.parse(cfg.name)
+            config.config_dir = Path(cfg.name).parent
         if inventory:
             with tempfile.NamedTemporaryFile() as fp:
                 fp.write(inventory.encode())

@@ -180,6 +180,15 @@ class Kustomization(BaseModel):
     __root__: dict
 
 
+class MetricProcessorEnvironmentModel(BaseModel):
+    """Metric Processor Environment configuration"""
+
+    name: str
+    """Environment name"""
+    attributes: dict
+    """Status Dashboard attributes linked to the environment"""
+
+
 class MetricsProcessorModel(BaseModel):
     """Metrics Processor configuration"""
 
@@ -189,16 +198,18 @@ class MetricsProcessorModel(BaseModel):
     """Kubernetes context to use for deployment"""
     kube_namespace: str
     """Kubernetes namespace name for deploy"""
+    datasource_url: str
+    """URL to the datasource (the one where graphite is deployed)"""
+    datasource_type: str = "graphite"
+    """Datasource type"""
     domain_name: str
     """FQDN"""
+    environments: List[MetricProcessorEnvironmentModel]
+    """Environments configuration"""
     kustomization: Kustomization
     """Kustomize overlay options"""
-
-
-class MetricsProcessorsModel(BaseModel):
-    """Metrics Processor list"""
-
-    __root__: List[MetricsProcessorModel]
+    status_dashboard_instance_name: str = None
+    """Reference name of the associated Status Dashboard instance name"""
 
 
 class MonitoringZoneModel(BaseModel):
@@ -317,14 +328,12 @@ class StatusDashboardModel(BaseModel):
     """Kubernetes context to use for deployment"""
     kube_namespace: str
     """Kubernetes namespace name for deploy"""
+    api_secret: str = None
+    """API secret"""
     domain_name: str
     """FQDN"""
     kustomization: Kustomization
     """Kustomize overlay options"""
-
-
-class StatusDashboardsModel(BaseModel):
-    __root__: List[StatusDashboardModel]
 
 
 class MatrixModel(BaseModel):
@@ -363,7 +372,7 @@ class ConfigModel(BaseModel):
     matrix: List[MatrixModel]
     """Testing matrix (where to, from where and what)"""
 
-    metrics_processor: MetricsProcessorsModel = None
+    metrics_processor: List[MetricsProcessorModel] = []
 
     monitoring_zones: MonitoringZonesModel
     """Monitoring zones from which to test"""
@@ -371,7 +380,7 @@ class ConfigModel(BaseModel):
     plugins: List[PluginModel]
     """Registered plugins to enable for testing"""
 
-    status_dashboard: StatusDashboardsModel = None
+    status_dashboard: List[StatusDashboardModel] = []
     """Status dashboard configuration"""
 
     def get_env_by_name(self, name) -> EnvironmentModel:
@@ -397,3 +406,9 @@ class ConfigModel(BaseModel):
             if item.__root__.name == name:
                 return item.__root__
         raise ValueError("Plugin %s is not defined" % (name))
+
+    def get_sdb_by_name(self, name) -> dict:
+        for item in self.status_dashboard:
+            if item.name == name:
+                return item
+        raise ValueError("Status dashboard %s is not defined" % (name))

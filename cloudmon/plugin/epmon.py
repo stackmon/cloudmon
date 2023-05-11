@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import logging
+from pathlib import Path
 
 from ruamel.yaml import YAML
 
@@ -79,7 +80,7 @@ class EpmonManager:
         # Read config file
         # TODO: we would most likely have same config - cache?
         yaml = YAML()
-        with open(plugin_ref.config, "r") as f:
+        with open(Path(self.config.config_dir, plugin_ref.config), "r") as f:
             config = yaml.load(f)
 
         services = dict()
