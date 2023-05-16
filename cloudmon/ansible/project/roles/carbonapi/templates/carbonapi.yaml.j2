@@ -1,6 +1,6 @@
 listeners: 
   - address: "0.0.0.0:8082"
-{% if graphite_ssl_cert is defined and graphite_ssl_key is defined -%}
+{% if graphite_ssl_cert is defined and graphite_ssl_key is defined %}
     serverTLSConfig:
       # There is a fun in carbonapi that it only respects certs if CA is also
       # given
