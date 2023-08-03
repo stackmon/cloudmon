@@ -218,7 +218,7 @@ class TestConfig(base.TestCase):
                             "auth": {"x": "y2"},
                         },
                     ],
-                    config.model.clouds_credentials.dict()["__root__"],
+                    config.model.clouds_credentials.model_dump(),
                 )
                 self.assertEqual(
                     [
@@ -236,7 +236,7 @@ class TestConfig(base.TestCase):
                             ],
                         }
                     ],
-                    config.model.environments.dict()["__root__"],
+                    config.model.environments.model_dump(),
                 )
                 self.assertEqual(
                     [
@@ -251,7 +251,7 @@ class TestConfig(base.TestCase):
                             "statsd_group_name": "g4",
                         },
                     ],
-                    config.model.monitoring_zones.dict()["__root__"],
+                    config.model.monitoring_zones.model_dump(),
                 )
                 self.assertDictEqual(
                     {

@@ -16,6 +16,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Field
+from pydantic import RootModel
 
 
 class CloudCredentialModel(BaseModel):
@@ -29,16 +30,16 @@ class CloudCredentialModel(BaseModel):
     """Auth block (as in clouds.yaml)"""
 
 
-class CloudCredentialsModel(BaseModel):
-    __root__: List[CloudCredentialModel]
+class CloudCredentialsModel(RootModel):
+    root: List[CloudCredentialModel]
 
     def get_by_name(self, name) -> CloudCredentialModel:
-        for item in self.__root__:
+        for item in self.roo_:
             if item.name == name:
                 return item
 
     def items(self):
-        for item in self.__root__:
+        for item in self.root:
             yield (item.name, item)
 
 
@@ -81,16 +82,16 @@ class EnvZoneCloudModel(BaseModel):
     """Reference to the cloud_credentials name to use"""
 
 
-class EnvZoneCloudsModel(BaseModel):
-    __root__: List[EnvZoneCloudModel]
+class EnvZoneCloudsModel(RootModel):
+    root: List[EnvZoneCloudModel]
 
     def get_by_name(self, name) -> EnvZoneCloudModel:
-        for item in self.__root__:
+        for item in self.root:
             if item.name == name:
                 return item
 
     def items(self):
-        for item in self.__root__:
+        for item in self.root:
             yield (item.name, item)
 
 
@@ -103,11 +104,11 @@ class EnvMonitoringZoneModel(BaseModel):
     """List of cloud credentials to be deployed"""
 
 
-class EnvMonitoringZonesModel(BaseModel):
-    __root__: List[EnvMonitoringZoneModel]
+class EnvMonitoringZonesModel(RootModel):
+    root: List[EnvMonitoringZoneModel]
 
     def items(self):
-        for item in self.__root__:
+        for item in self.root:
             yield (item.name, item)
 
 
@@ -122,7 +123,7 @@ class EnvironmentModel(BaseModel):
     """Monitoring zones from which environment will be tested"""
 
     def get_zone_by_name(self, name) -> EnvMonitoringZoneModel:
-        for item in self.monitoring_zones.__root__:
+        for item in self.monitoring_zones.root:
             if item.name == name:
                 return item
         raise RuntimeError(
@@ -131,11 +132,11 @@ class EnvironmentModel(BaseModel):
         )
 
 
-class EnvironmentsModel(BaseModel):
-    __root__: List[EnvironmentModel]
+class EnvironmentsModel(RootModel):
+    root: List[EnvironmentModel]
 
     def items(self):
-        for item in self.__root__:
+        for item in self.root:
             yield (item.name, item)
 
 
@@ -174,10 +175,10 @@ class GrafanaModel(BaseModel):
     """List of dashboards to be managed in the instance"""
 
 
-class Kustomization(BaseModel):
+class Kustomization(RootModel):
     """Basic Kustomization properties to use for overlay building"""
 
-    __root__: dict
+    root: dict
 
 
 class MetricProcessorEnvironmentModel(BaseModel):
@@ -225,16 +226,16 @@ class MonitoringZoneModel(BaseModel):
     """ansible group name of the statsd hosts to use"""
 
 
-class MonitoringZonesModel(BaseModel):
-    __root__: List[MonitoringZoneModel]
+class MonitoringZonesModel(RootModel):
+    root: List[MonitoringZoneModel]
 
     def get_by_name(self, name) -> MonitoringZoneModel:
-        for item in self.__root__:
+        for item in self.root:
             if item.name == name:
                 return item
 
     def items(self):
-        for item in self.__root__:
+        for item in self.root:
             yield (item.name, item)
 
 
@@ -302,19 +303,18 @@ class PluginGeneralModel(BaseModel):
     """plugin name"""
     type: Literal["general"]
     init_image: str
-    """Init image (this image is invoked to optionally initialize infrastructure
-    for further testing)
-    """
+    """Init image (this image is invoked to optionally initialize
+    infrastructure for further testing) """
 
 
-class PluginModel(BaseModel):
-    __root__: Union[
+class PluginModel(RootModel):
+    root: Union[
         PluginApimonModel, PluginEpmonModel, PluginGeneralModel
     ] = Field(..., discriminator="type")
 
 
-class PluginRefModel(BaseModel):
-    __root__: Union[
+class PluginRefModel(RootModel):
+    root: Union[
         PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel
     ]
 
@@ -384,27 +384,27 @@ class ConfigModel(BaseModel):
     """Status dashboard configuration"""
 
     def get_env_by_name(self, name) -> EnvironmentModel:
-        for item in self.environments.__root__:
+        for item in self.environments.root:
             if item.name == name:
                 return item
         raise ValueError("Environment %s is not defined" % (name))
 
     def get_cloud_creds_by_name(self, name) -> CloudCredentialModel:
-        for item in self.clouds_credentials.__root__:
+        for item in self.clouds_credentials.root:
             if item.name == name:
                 return item
         raise ValueError("Cloud %s is not defined" % (name))
 
     def get_monitoring_zone_by_name(self, name) -> MonitoringZoneModel:
-        for item in self.monitoring_zones.__root__:
+        for item in self.monitoring_zones.root:
             if item.name == name:
                 return item
         raise ValueError("Monitoring Zone %s is not defined" % (name))
 
     def get_plugin_by_name(self, name) -> dict:
         for item in self.plugins:
-            if item.__root__.name == name:
-                return item.__root__
+            if item.root.name == name:
+                return item.root
         raise ValueError("Plugin %s is not defined" % (name))
 
     def get_sdb_by_name(self, name) -> dict:

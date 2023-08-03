@@ -42,7 +42,7 @@ class StatusDashboardManager:
                 overlays_dir=overlays_dir,
                 base=base,
                 name=instance.name,
-                kustomization=instance.kustomization.__root__,
+                kustomization=instance.kustomization.root,
                 config_dir=self.config.config_dir,
             )
 
