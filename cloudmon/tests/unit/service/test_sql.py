@@ -81,13 +81,19 @@ class TestSql(base.TestCase):
             inventory=mock.ANY,
             extravars=dict(
                 distro_lookup_path=[
-                    ("{{ ansible_facts.distribution }}"
-                     ".{{ ansible_facts.lsb.codename|default() }}"
-                     ".{{ ansible_facts.architecture }}.yaml"),
-                    ("{{ ansible_facts.distribution }}"
-                     ".{{ ansible_facts.lsb.codename|default() }}.yaml"),
-                    ("{{ ansible_facts.distribution }}"
-                     ".{{ ansible_facts.architecture }}.yaml"),
+                    (
+                        "{{ ansible_facts.distribution }}"
+                        ".{{ ansible_facts.lsb.codename|default() }}"
+                        ".{{ ansible_facts.architecture }}.yaml"
+                    ),
+                    (
+                        "{{ ansible_facts.distribution }}"
+                        ".{{ ansible_facts.lsb.codename|default() }}.yaml"
+                    ),
+                    (
+                        "{{ ansible_facts.distribution }}"
+                        ".{{ ansible_facts.architecture }}.yaml"
+                    ),
                     "{{ ansible_facts.distribution }}.yaml",
                     "{{ ansible_facts.os_family }}.yaml",
                     "default.yaml",
@@ -113,8 +119,8 @@ class TestSql(base.TestCase):
             playbook="manage_databases.yaml",
             inventory=mock.ANY,
             extravars=dict(
-                postgres_root_password='abc',
-                postgresql_group_name='postgres',
+                postgres_root_password="abc",
+                postgresql_group_name="postgres",
                 databases=[],
             ),
             verbosity=1,

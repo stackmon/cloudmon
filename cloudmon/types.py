@@ -28,6 +28,8 @@ class CloudCredentialModel(BaseModel):
     """Optional OpenStack profile to use with credentials"""
     auth: dict
     """Auth block (as in clouds.yaml)"""
+    region_name: str = None
+    """Optional OpenStack profile region name"""
 
 
 class CloudCredentialsModel(RootModel):
@@ -314,9 +316,7 @@ class PluginModel(RootModel):
 
 
 class PluginRefModel(RootModel):
-    root: Union[
-        PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel
-    ]
+    root: Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel]
 
 
 class StatusDashboardModel(BaseModel):

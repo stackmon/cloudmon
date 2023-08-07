@@ -115,7 +115,9 @@ class CloudMonConfig:
         for cloud in zone.clouds:
             c_name = cloud.name
             c_ref = cloud.ref
-            cloud_creds = self.model.get_cloud_creds_by_name(c_ref).dict()
+            cloud_creds = self.model.get_cloud_creds_by_name(c_ref).model_dump(
+                exclude_none=True
+            )
             # We do not need name on that level - it is anyway not what we
             # would expect
             cloud_creds.pop("name")
