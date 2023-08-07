@@ -82,14 +82,13 @@ class PostgreSQLManager:
     def provision_db(self, options):
         self.log.info("Managing PostgreSQL databases")
 
+        db_config = self.config.model.database
         extravars = dict(
-            postgres_root_password=self.config.config["database"][
-                "postgres_postgres_password"
-            ],
+            postgres_root_password=db_config.postgres_postgres_password,
             postgresql_group_name="postgres",
-            databases=self.config.config["database"]["databases"],
+            databases=[x.model_dump() for x in db_config.databases],
         )
-        if self.config.config["database"].get("ha_mode", False):
+        if db_config.ha_mode:
             extravars["postgres_port"] = 5000
 
         r = ansible_runner.run(

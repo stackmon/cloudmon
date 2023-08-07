@@ -39,7 +39,7 @@ class MetricsProcessorManager:
         overlays_dir = Path(kustomize_base_dir, "overlays")
         base = "../../base"
         for instance in self.config.model.metrics_processor:
-            cm_gen = instance.kustomization.__root__.setdefault(
+            cm_gen = instance.kustomization.root.setdefault(
                 "configMapGenerator", []
             )
             cm_gen.append(
@@ -53,7 +53,7 @@ class MetricsProcessorManager:
                 overlays_dir=overlays_dir,
                 base=base,
                 name=instance.name,
-                kustomization=instance.kustomization.__root__,
+                kustomization=instance.kustomization.root,
                 config_dir=self.config.config_dir,
             )
 
