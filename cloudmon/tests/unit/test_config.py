@@ -39,6 +39,7 @@ class TestConfig(base.TestCase):
           profile: _b
           auth:
             x: _y
+          region_name: _r
       database:
         postgres_postgres_password: abc
         databases:
@@ -73,6 +74,7 @@ class TestConfig(base.TestCase):
           profile: b1
         - name: c2
           profile: b2
+          region_name: r2
       database:
         databases:
           - name: d1
@@ -131,7 +133,11 @@ class TestConfig(base.TestCase):
                 },
                 "x": {
                     "name": "x",
-                    "data": {"profile": "_b", "auth": {"x": "_y"}},
+                    "data": {
+                        "profile": "_b",
+                        "auth": {"x": "_y"},
+                        "region_name": "_r",
+                    },
                 },
             },
         )
@@ -142,7 +148,11 @@ class TestConfig(base.TestCase):
             config.get_env_cloud_credentials("e1", "z1", "x"),
             {
                 "name": "x",
-                "data": {"profile": "_b", "auth": {"x": "_y"}},
+                "data": {
+                    "profile": "_b",
+                    "auth": {"x": "_y"},
+                    "region_name": "_r",
+                },
             },
         )
 
@@ -211,11 +221,13 @@ class TestConfig(base.TestCase):
                             "name": "c1",
                             "profile": "b1",
                             "auth": {"x": "y1"},
+                            "region_name": None,
                         },
                         {
                             "name": "c2",
                             "profile": "b2",
                             "auth": {"x": "y2"},
+                            "region_name": "r2",
                         },
                     ],
                     config.model.clouds_credentials.model_dump(),
