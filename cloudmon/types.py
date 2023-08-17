@@ -15,12 +15,14 @@ from typing import Literal
 from typing import Union
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import RootModel
 
 
 class CloudCredentialModel(BaseModel):
     """Cloud Credentials"""
+    model_config = ConfigDict(extra='allow')
 
     name: str
     """Credential name (for reference)"""
@@ -36,7 +38,7 @@ class CloudCredentialsModel(RootModel):
     root: List[CloudCredentialModel]
 
     def get_by_name(self, name) -> CloudCredentialModel:
-        for item in self.roo_:
+        for item in self.root:
             if item.name == name:
                 return item
 

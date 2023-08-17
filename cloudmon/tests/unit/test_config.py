@@ -40,6 +40,7 @@ class TestConfig(base.TestCase):
           auth:
             x: _y
           region_name: _r
+          foo: bar
       database:
         postgres_postgres_password: abc
         databases:
@@ -137,6 +138,7 @@ class TestConfig(base.TestCase):
                         "profile": "_b",
                         "auth": {"x": "_y"},
                         "region_name": "_r",
+                        "foo": "bar",
                     },
                 },
             },
@@ -152,6 +154,7 @@ class TestConfig(base.TestCase):
                     "profile": "_b",
                     "auth": {"x": "_y"},
                     "region_name": "_r",
+                    "foo": "bar",
                 },
             },
         )
@@ -278,5 +281,5 @@ class TestConfig(base.TestCase):
                             }
                         ],
                     },
-                    config.model.database.dict(),
+                    config.model.database.model_dump(),
                 )
