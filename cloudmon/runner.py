@@ -60,9 +60,8 @@ class CloudMon(App):
         )
         parser.add_argument(
             "--config-repo-branch",
-            help=(
-                "Specify branch for Git repository. "
-            ),
+            default="main",
+            help="Specify branch for Git repository",
         )
         parser.add_argument(
             "--private-data-dir",
@@ -90,17 +89,12 @@ class CloudMon(App):
             final_config_dir = Path(self.config.private_data_dir, "_config")
             # final_config_dir.mkdir(parents=True, exist_ok=True)
             config_dir2 = None
-            if self.options.config_repo_branch is None:
-                # Set the default branch to "main"
-                repo_ref = "main"
-            else:
-                repo_ref = self.options.config_repo_branch
             if self.options.config_repo is not None:
                 # Checkout config-repo into separate dir and use it as a base
                 # in final_config_dir
                 config_dir2 = Path(self.config.private_data_dir, "config_repo")
                 repo = GitRepoModel(repo_url=self.options.config_repo,
-                                    repo_ref=repo_ref)
+                                    repo_ref=self.options.config_repo_branch)
                 utils.checkout_git_repository(config_dir2, repo)
                 shutil.copytree(
                     config_dir2, final_config_dir, dirs_exist_ok=True
