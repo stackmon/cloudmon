@@ -59,6 +59,11 @@ class CloudMon(App):
             ),
         )
         parser.add_argument(
+            "--config-repo-branch",
+            default="main",
+            help="Specify branch for Git repository",
+        )
+        parser.add_argument(
             "--private-data-dir",
             help="Ansible-runner project dir",
         )
@@ -88,7 +93,8 @@ class CloudMon(App):
                 # Checkout config-repo into separate dir and use it as a base
                 # in final_config_dir
                 config_dir2 = Path(self.config.private_data_dir, "config_repo")
-                repo = GitRepoModel(repo_url=self.options.config_repo)
+                repo = GitRepoModel(repo_url=self.options.config_repo,
+                                    repo_ref=self.options.config_repo_branch)
                 utils.checkout_git_repository(config_dir2, repo)
                 shutil.copytree(
                     config_dir2, final_config_dir, dirs_exist_ok=True
