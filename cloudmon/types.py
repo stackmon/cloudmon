@@ -149,7 +149,7 @@ class GitRepoModel(BaseModel):
 
     repo_url: str
     """Git repo url"""
-    repo_ref: str
+    repo_ref: str = "main"
     """Git repo reference (branch)"""
 
 
