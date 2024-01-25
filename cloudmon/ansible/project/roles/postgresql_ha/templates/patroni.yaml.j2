@@ -98,6 +98,11 @@ postgresql:
     max_parallel_workers_per_gather = 2
     max_parallel_workers = 4
     max_parallel_maintenance_workers = 2
+    
+    # pg_stat_statements enable:
+    pg_stat_statements
+    pg_stat_statements.max = 10000
+    pg_stat_statements.track = all
 
 #watchdog:
 #  mode: automatic # Allowed values: off, automatic, required
