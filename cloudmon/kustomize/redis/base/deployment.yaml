@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdb-redis-cache
+  labels:
+    app.kubernetes.io/component: sdb-redis-cache
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sdb-redis-cache
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: sdb-redis-cache
+    spec:
+      containers:
+      - name: redis-server
+        image: redis:7.2.4
+        command:
+          - redis-server
+          - "--requirepass"
+          - "$(REDIS_PASSWORD)"
+        imagePullPolicy: "IfNotPresent"
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: redis-password
+                key: password

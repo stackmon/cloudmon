@@ -1,0 +1,14 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: sdb-redis-cache
+  labels:
+    app.kubernetes.io/component: sdb-redis-cache
+spec:
+  selector:
+    app.kubernetes.io/component: sdb-redis-cache
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
