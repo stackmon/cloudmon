@@ -21,6 +21,7 @@ spec:
           - redis-server
           - "--requirepass"
           - "$(REDIS_PASSWORD)"
+          - "/etc/redis/redis.conf"
         imagePullPolicy: "IfNotPresent"
         ports:
         - containerPort: 6379
@@ -37,3 +38,11 @@ spec:
               secretKeyRef:
                 name: redis-password
                 key: password
+        volumeMounts:
+          - name: sdb-redis-config
+            mountPath: /etc/redis
+            readOnly: true
+      volumes:
+        - name: sdb-redis-config
+          configMap:
+            name: sdb-redis-config
