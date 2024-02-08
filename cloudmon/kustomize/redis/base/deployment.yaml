@@ -19,30 +19,27 @@ spec:
         image: redis:7.2.4
         command:
           - redis-server
-          - "--requirepass"
-          - "$(REDIS_PASSWORD)"
           - "/etc/redis/redis.conf"
         imagePullPolicy: "IfNotPresent"
         ports:
         - containerPort: 6379
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "100m"
+            memory: "512Mi"
+            cpu: "500m"
           limits:
             memory: "512Mi"
             cpu: "500m"
-        env:
-          - name: REDIS_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: redis-password
-                key: password
         volumeMounts:
           - name: sdb-redis-config
             mountPath: /etc/redis
             readOnly: true
+          - name: sdb-redis-data
+            mountPath: /data
       volumes:
         - name: sdb-redis-config
           configMap:
             name: sdb-redis-config
+        - name: sdb-redis-data
+          emptyDir:
+            sizeLimit: 1Gi
