@@ -1,0 +1,30 @@
+[Unit]
+Description=Globalmon Endpoint Monitor container
+Wants=syslog.service
+
+[Service]
+Type=simple
+Restart=always
+TimeoutSec=90s
+User={{ globalmon_os_user }}
+Group={{ globalmon_os_group }}
+EnvironmentFile={{ globalmon_env_path }}
+
+ExecStartPre=-{{ container_runtime }} system migrate
+ExecStartPre=-{{ container_runtime }} pull ${GLOBALMON_IMAGE}
+ExecStartPre=-{{ container_runtime }} rm {{ globalmon_container_name }}
+
+ExecStart={{ container_runtime }} run \
+  --name "{{ globalmon_container_name }}" \
+{% if container_command == 'podman' %}
+  --log-opt=path=/dev/null \
+{% endif %}
+  -v {{ globalmon_config_dir }}:/etc/globalmon:ro \
+  ${GLOBALMON_IMAGE} --config /etc/globalmon/{{ globalmon_config_file_name }}
+
+ExecReload={{ container_runtime }} kill -s SIGHUP {{ globalmon_container_name }}
+
+ExecStop={{ container_runtime }} stop -t 10 {{ globalmon_container_name }}
+
+[Install]
+WantedBy=multi-user.target
