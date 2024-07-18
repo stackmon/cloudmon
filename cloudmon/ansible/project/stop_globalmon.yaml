@@ -1,0 +1,11 @@
+---
+# Playbook to stop Globalmon
+#
+- name: "Stopping CloudMon - Globalmon"
+  hosts: "{{ globalmon_group_name }}:!disabled"
+  become: true
+  tasks:
+    - name: Stop globalmon
+      ansible.builtin.service:
+        name: "cloudmon-globalmon"
+        state: "stopped"
