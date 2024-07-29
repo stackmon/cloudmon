@@ -45,6 +45,10 @@ plugins:
     type: epmon
     image: quay.io/opentelekomcloud/apimon:change_35_latest
     config: sample_config_epmon.yaml
+  - name: globalmon
+    type: globalmon
+    image: quay.io/stackmon/globalmon:change_6_latest
+    config: globalmon-config.yaml
   - name: lb
     type: general
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb
@@ -86,7 +90,7 @@ grafana:
     grafana_image: quay.io/opentelekomcloud/grafana:9.1.5
     grafana_renderer_image: quay.io/opentelekomcloud/grafana-image-renderer:3.6.1
     grafana_security_admin_password: fake_password_change_me
-    grafana_enable_renderer: 'true'
+    grafana_enable_renderer: "true"
     grafana_grafana_host: grafana
     grafana_renderer_host: renderer
     grafana_database_type: postgres
@@ -127,6 +131,9 @@ matrix:
           - object_store
           - orchestration
           - volume
+      - name: globalmon
+        globalmons_inventory_group_name: globalmons
+        cloud_name: production # env in zone has few creds. We need to pick one
 
 clouds_credentials:
   - name: p1
