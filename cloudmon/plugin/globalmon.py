@@ -71,7 +71,8 @@ class GlobalmonManager:
     def process_plugin_entry(self, plugin_ref, matrix_entry, plugin):
         env_name = matrix_entry.env
         zone = matrix_entry.monitoring_zone
-        globalmon_config = self.globalmon_configs.setdefault(zone, GlobalmonConfig())
+        globalmon_config = self.globalmon_configs.setdefault(
+            zone, GlobalmonConfig())
         globalmon_config.environment = env_name
         globalmon_config.zone = zone
         ansible_group_name = plugin.globalmons_inventory_group_name
@@ -113,8 +114,7 @@ class GlobalmonManager:
                 statsd_host_vars.get("ansible_host", statsd_servers[0]),
             )
 
-
-            # FOR MORE DETAILED CONFIG FILE USE THIS. 
+            # FOR MORE DETAILED CONFIG FILE USE THIS.
 
             # globalmon_cfg = dict(
             #     globalmon=dict(
@@ -132,15 +132,12 @@ class GlobalmonManager:
             #     secure="/etc/globalmon/globalmon-secure.yaml",
             # )
 
-
             globalmon_cfg = dict(
-                services = globalmon_config.services,
-                statsd = dict(
-                    host=statsd_address, 
+                services=globalmon_config.services,
+                statsd=dict(
+                    host=statsd_address,
                     port=8125,
-                    path=f"globalmon.{globalmon_config.environment}.{globalmon_config.zone}"
-                )
-            )
+                    path=f"globalmon.{globalmon_config.environment}.{globalmon_config.zone}"))
 
             clouds_creds = []
             # Construct list of cloud credentials for required environments
@@ -163,7 +160,6 @@ class GlobalmonManager:
                 globalmon_config=globalmon_cfg,
                 globalmon_secure_config=globalmon_secure_cfg,
             )
-
 
             r = ansible_runner.run(
                 private_data_dir=self.config.private_data_dir,
