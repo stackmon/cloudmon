@@ -300,6 +300,30 @@ class PluginEpmonRefModel(BaseModel):
     """ansible group name to deploy epmon process"""
 
 
+class PluginGlobalmonModel(BaseModel):
+    """Endpoint Monitoring plugin"""
+
+    name: str
+    """plugin name"""
+    type: Literal["globalmon"]
+    image: str
+    """Globalmon image to use"""
+    config: str
+    """Path to the globalmon configuration elements
+    (which service which endpoints)
+    """
+
+
+class PluginGlobalmonRefModel(BaseModel):
+    """Globalmon plugin invocation"""
+
+    name: str
+    """plugin name"""
+    cloud_name: str = None
+    """Cloud name to test in the environment"""
+    globalmons_inventory_group_name: str = "globalmons"
+    """ansible group name to deploy globalmon process"""
+
 class PluginGeneralModel(BaseModel):
     """General plugin"""
 
@@ -313,12 +337,12 @@ class PluginGeneralModel(BaseModel):
 
 class PluginModel(RootModel):
     root: Union[
-        PluginApimonModel, PluginEpmonModel, PluginGeneralModel
+        PluginApimonModel, PluginEpmonModel, PluginGlobalmonModel, PluginGeneralModel
     ] = Field(..., discriminator="type")
 
 
 class PluginRefModel(RootModel):
-    root: Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel]
+    root: Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGlobalmonRefModel, PluginGeneralModel]
 
 
 class StatusDashboardModel(BaseModel):
@@ -351,7 +375,7 @@ class MatrixModel(BaseModel):
     """Which DB to use for storing logs"""
 
     plugins: List[
-        Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGeneralModel]
+        Union[PluginApimonRefModel, PluginEpmonRefModel, PluginGlobalmonRefModel, PluginGeneralModel]
     ]
     """Which plugins to use for testing"""
 
