@@ -22,7 +22,7 @@
   retries: 5
 
 - name: Create globalmon group
-  become: yes
+  become: true
   ansible.builtin.group:
     name: "{{ globalmon_os_group }}"
     state: "present"
@@ -59,17 +59,6 @@
   ansible.builtin.template:
     src: "env_globalmon"
     dest: "{{ globalmon_env_path }}"
-    owner: "{{ globalmon_os_user }}"
-    group: "{{ globalmon_os_group }}"
-    mode: "0644"
-  notify:
-    - Restart globalmon
-
-- name: Write logging.conf
-  become: true
-  ansible.builtin.template:
-    src: logging.conf
-    dest: "{{ globalmon_config_dir }}/logging.conf"
     owner: "{{ globalmon_os_user }}"
     group: "{{ globalmon_os_group }}"
     mode: "0644"
