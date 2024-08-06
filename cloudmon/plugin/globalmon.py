@@ -48,11 +48,7 @@ class GlobalmonManager:
         self.process_config()
 
     def process_config(self):
-        """Process config
-        Process every individual matrix entry and configure
-        components correspondingly
-        """
-
+        # Process every plugin entry in config matrix
         for matrix_entry in self.config.model.matrix:
             self.log.debug("Processing %s", matrix_entry)
             for plugin in matrix_entry.plugins:
