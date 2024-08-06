@@ -48,9 +48,7 @@ class GlobalmonManager:
         self.process_config()
 
     def process_config(self):
-        """
-        Process config
-
+        """Process config
         Process every individual matrix entry and configure
         components correspondingly
         """
@@ -132,12 +130,14 @@ class GlobalmonManager:
             #     secure="/etc/globalmon/globalmon-secure.yaml",
             # )
 
+            environment = globalmon_config.environment
+            zone = globalmon_config.zone
             globalmon_cfg = dict(
                 services=globalmon_config.services,
                 statsd=dict(
                     host=statsd_address,
                     port=8125,
-                    path=f"globalmon.{globalmon_config.environment}.{globalmon_config.zone}"))
+                    path=f"globalmon.{environment}.{zone}"))
 
             clouds_creds = []
             # Construct list of cloud credentials for required environments
