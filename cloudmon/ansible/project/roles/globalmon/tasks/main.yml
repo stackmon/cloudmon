@@ -21,19 +21,19 @@
 #   until: task_result is success
 #   retries: 5
 
-- name: Create globalmon group
-  become: true
-  ansible.builtin.group:
-    name: "{{ globalmon_os_group }}"
-    state: "present"
+# - name: Create globalmon group
+#   become: true
+#   ansible.builtin.group:
+#     name: "{{ globalmon_os_group }}"
+#     state: "present"
 
-- name: Create globalmon user
-  become: true
-  ansible.builtin.user:
-    name: "{{ globalmon_os_user }}"
-    group: "{{ globalmon_os_group }}"
-    groups: "{{ (container_command == 'docker') | ternary('docker', '', omit) }}"
-    state: "present"
+# - name: Create globalmon user
+#   become: true
+#   ansible.builtin.user:
+#     name: "{{ globalmon_os_user }}"
+#     group: "{{ globalmon_os_group }}"
+#     groups: "{{ (container_command == 'docker') | ternary('docker', '', omit) }}"
+#     state: "present"
 
 - name: Write globalmon SystemD unit file
   become: true
@@ -48,8 +48,8 @@
   ansible.builtin.file:
     dest: "{{ item.dest }}"
     state: "directory"
-    owner: "{{ globalmon_os_user }}"
-    group: "{{ globalmon_os_group }}"
+    # owner: "{{ globalmon_os_user }}"
+    # group: "{{ globalmon_os_group }}"
     mode: "{{ item.mode | default(omit) }}"
   loop:
     - { dest: "{{ globalmon_config_dir }}", mode: "0755" }
@@ -59,8 +59,8 @@
   ansible.builtin.template:
     src: "env_globalmon"
     dest: "{{ globalmon_env_path }}"
-    owner: "{{ globalmon_os_user }}"
-    group: "{{ globalmon_os_group }}"
+    # owner: "{{ globalmon_os_user }}"
+    # group: "{{ globalmon_os_group }}"
     mode: "0644"
   notify:
     - Restart globalmon
@@ -70,8 +70,8 @@
   ansible.builtin.copy:
     content: "{{ globalmon_config | to_nice_yaml(indent=2, width=79) }}"
     dest: "{{ globalmon_config_path }}"
-    group: "{{ globalmon_os_group }}"
-    owner: "{{ globalmon_os_user }}"
+    # group: "{{ globalmon_os_group }}"
+    # owner: "{{ globalmon_os_user }}"
     mode: "0644"
   when:
     - "globalmon_config is defined"
@@ -83,8 +83,8 @@
   ansible.builtin.copy:
     content: "{{ globalmon_secure_config | to_nice_yaml(indent=2, width=79) }}"
     dest: "{{ globalmon_secure_config_path }}"
-    group: "{{ globalmon_os_group }}"
-    owner: "{{ globalmon_os_user }}"
+    # group: "{{ globalmon_os_group }}"
+    # owner: "{{ globalmon_os_user }}"
     mode: "0644"
   when:
     - "globalmon_secure_config is defined"

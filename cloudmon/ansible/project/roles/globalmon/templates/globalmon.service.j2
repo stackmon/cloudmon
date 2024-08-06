@@ -6,8 +6,8 @@ Wants=syslog.service
 Type=simple
 Restart=always
 TimeoutSec=90s
-User={{ globalmon_os_user }}
-Group={{ globalmon_os_group }}
+#User={{ globalmon_os_user }}
+#Group={{ globalmon_os_group }}
 EnvironmentFile={{ globalmon_env_path }}
 
 ExecStartPre=-{{ container_runtime }} system migrate
