@@ -1,5 +1,5 @@
 ---
-ansible_python_interpreter: "/usr/bin/env python3"
+ansible_python_interpreter: "/usr/bin/python3"
 packages:
   - docker.io
 container_command: docker

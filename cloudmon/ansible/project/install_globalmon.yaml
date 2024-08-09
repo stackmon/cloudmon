@@ -1,0 +1,11 @@
+---
+# Playbook to install globalmon
+#
+
+- name: Provision globalmon
+  hosts: "{{ globalmon_group_name }}:!disabled"
+  become: true
+  gather_facts: true
+  roles:
+    - globalmon
+  tags: globalmon

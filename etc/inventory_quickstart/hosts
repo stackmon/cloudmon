@@ -9,23 +9,18 @@ all:
     #  internal_address: 192.168.0.2
   children:
     statsd:
-      hosts:
-        worker
+      hosts: worker
     graphite:
-      hosts:
-        worker
+      hosts: worker
     grafana:
-      hosts:
-        worker
+      hosts: worker
     schedulers:
-      hosts:
-        worker
+      hosts: worker
     executors:
-      hosts:
-        worker
+      hosts: worker
     epmons:
-      hosts:
-        worker
+      hosts: worker
+    globalmons:
+      hosts: worker
     postgres:
-      hosts:
-        worker
+      hosts: worker

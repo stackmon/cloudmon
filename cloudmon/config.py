@@ -69,6 +69,20 @@ class CloudMonConfig:
 
         self.private_data_dir = Path(tempfile.mkdtemp(prefix="cloudmon"))
 
+    def __repr__(self):
+        return (
+            f"CloudMonConfig(config={self.config}, "
+            f"config_dir={self.config_dir}, "
+            f"inventory={self.inventory}, "
+            f"inventory_path={self.inventory_path}, "
+            f"apimon_configs={self.apimon_configs}, "
+            f"private_data_dir={self.private_data_dir}, "
+            f"project_dir={self.project_dir}, "
+            f"kustomize_dir={self.kustomize_dir}, "
+            f"default_extravars={self.default_extravars}, "
+            f"is_updated={self.is_updated})"
+        )
+
     def hostvars(self, host=None):
         hostvars = self.inventory["_meta"]["hostvars"]
         if host:
