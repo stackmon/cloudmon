@@ -173,6 +173,20 @@ class CloudMonConfig:
 
         self.model = ConfigModel(**source)
 
+    def parse_insecure(
+        self, fname: Path,
+    ):
+        """Parse config
+
+        :param str fname: Config file path
+        """
+        xyaml = YAML()
+        source = dict()
+        with open(fname, "r") as f:
+            source = yaml.safe_load(f)
+            self.config = xyaml.load(f)
+        self.model = ConfigModel(**source)
+
     def process_inventory(self, inventory_path: Path):
         self.log.debug("Processing inventory file %s" % inventory_path)
         out, err = ansible_runner.get_inventory(
