@@ -72,6 +72,10 @@ class CloudMon(App):
             default="inventory.yaml",
             help="Specify the Inventory path (relative to `--config-dir`)",
         )
+        parser.add_argument(
+            '--insecure',
+            action='store_true',
+            help='Enable config to be passed as single file using config option')
         return parser
 
     def initialize_app(self, argv):
@@ -87,45 +91,71 @@ class CloudMon(App):
                 self.is_priv_tmp = False
 
             final_config_dir = Path(self.config.private_data_dir, "_config")
-            # final_config_dir.mkdir(parents=True, exist_ok=True)
-            config_dir2 = None
-            if self.options.config_repo is not None:
-                # Checkout config-repo into separate dir and use it as a base
-                # in final_config_dir
-                config_dir2 = Path(self.config.private_data_dir, "config_repo")
-                repo = GitRepoModel(repo_url=self.options.config_repo,
-                                    repo_ref=self.options.config_repo_branch)
-                utils.checkout_git_repository(config_dir2, repo)
-                shutil.copytree(
-                    config_dir2, final_config_dir, dirs_exist_ok=True
-                )
 
-            if (
-                self.options.config_dir is not None
-                and self.options.config is not None
-                and Path(self.options.config_dir, self.options.config).exists()
-                and self.options.inventory is not None
-                and Path(
-                    self.options.config_dir, self.options.inventory
-                ).exists()
-            ):
-                shutil.copytree(
-                    self.options.config_dir,
-                    final_config_dir,
-                    dirs_exist_ok=True,
-                )
-                self.config.config_dir = final_config_dir
-                self.config.parse(
-                    self.options.config,
-                    Path(self.options.config_dir).resolve(),
-                    config_dir2,
-                )
+            if self.options.insecure is False:                
+                # final_config_dir.mkdir(parents=True, exist_ok=True)
+                config_dir2 = None
+                if self.options.config_repo is not None:
+                    # Checkout config-repo into separate dir and use it as a base
+                    # in final_config_dir
+                    config_dir2 = Path(self.config.private_data_dir, "config_repo")
+                    repo = GitRepoModel(repo_url=self.options.config_repo,
+                                        repo_ref=self.options.config_repo_branch)
+                    utils.checkout_git_repository(config_dir2, repo)
+                    shutil.copytree(
+                        config_dir2, final_config_dir, dirs_exist_ok=True
+                    )
+                else:
+                    raise Exception("Please specify the config repository.")
 
-                self.config.process_inventory(
-                    Path(
+                if (
+                    self.options.config_dir is not None
+                    and self.options.config is not None
+                    and Path(self.options.config_dir, self.options.config).exists()
+                    and self.options.inventory is not None
+                    and Path(
                         self.options.config_dir, self.options.inventory
-                    ).resolve()
-                )
+                    ).exists()
+                ):
+                    shutil.copytree(
+                        self.options.config_dir,
+                        final_config_dir,
+                        dirs_exist_ok=True,
+                    )
+                    self.config.config_dir = final_config_dir
+                    self.config.parse(
+                        self.options.config,
+                        Path(self.options.config_dir).resolve(),
+                        config_dir2,
+                    )
+
+                    self.config.process_inventory(
+                        Path(
+                            self.options.config_dir, self.options.inventory
+                        ).resolve()
+                    )
+                else:
+                    raise Exception("""Please specify config directory 
+                                    and check that config.yaml and 
+                                    inventory.yaml exists at specified 
+                                    location
+                                    """)
+            else:
+                if (
+                    self.options.config is not None
+                    and Path(self.options.config).exists()
+                    and self.options.inventory is not None
+                    and Path(self.options.inventory).exists()
+                ):
+                    self.config.parse_insecure(self.options.config)
+                    self.config.process_inventory(
+                        Path(self.options.inventory).resolve()
+                    )
+                else:
+                    raise Exception("""Please specify path to config 
+                                    using --config and path to inventory
+                                    using --inventory properly
+                                    """)
 
     def prepare_to_run_command(self, cmd):
         self.LOG.debug("prepare_to_run_command %s", cmd.__class__.__name__)
