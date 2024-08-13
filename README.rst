@@ -84,7 +84,7 @@ Config repo contains the public part of the configuration whereas the secret par
    cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git apimon start
 
 
-A sample of config repo can be found `here <https://github.com/opentelekomcloud-infra/stackmon-config>`.
+**NOTE:** A sample of config repo can be found `here <https://github.com/opentelekomcloud-infra/stackmon-config>`_.
 
 CloudMon can also be invoked in insecure mode specifying path to the config file and inventory file
 (absolute paths). Sample files can be found in **./etc** directory.
