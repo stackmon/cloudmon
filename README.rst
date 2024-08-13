@@ -61,22 +61,47 @@ to be used, which environments need to be monitored and with which settings.
 .. literalinclude:: /../../etc/sample_config.yaml
    :language: yaml
 
-CloudMon can be invoked specifying path to the config file and inventory file
+CloudMon can be invoked specifying path to the config repository and the config directory containing config.yaml and inventory.yml files. 
 (absolute paths)
+Config repo contains the public part of the configuration whereas the secret part can be stored in the config.yaml in config directory.
 
 .. code-block:: console
 
    # Provision everything
-   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ provision
+   cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git provision
+
+   # Using specific branch of config repo
+   cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git --config-repo-branch BRANCH_NAME provision 
 
    # Provision apimon
-   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ apimon provision
+   cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git apimon provision
+   
 
    # Stopping
-   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ apimon stop
+   cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git apimon stop
 
    # Starting
-   cloudmon --config config.yaml --inventory /cloudmon/ansible/inventory_quickstart/ apimon start
+   cloudmon --config-dir PATH/TO/CONFIG_DIR --config-repo https://your-repo-url.git apimon start
+
+
+A sample of config repo can be found `here <https://github.com/opentelekomcloud-infra/stackmon-config>`.
+
+CloudMon can also be invoked in insecure mode specifying path to the config file and inventory file
+(absolute paths). Sample files can be found in **./etc** directory.
+
+.. code-block:: console
+
+   # Provision everything
+   cloudmon --config ./etc/config.yaml --inventory ./etc/inventory_quickstart/ provision
+
+   # Provision apimon
+   cloudmon --config ./etc/config.yaml --inventory ./etc/inventory_quickstart/ apimon provision
+
+   # Stopping
+   cloudmon --config ./etc/config.yaml --inventory ./etc/inventory_quickstart/ apimon stop
+
+   # Starting
+   cloudmon --config ./etc/config.yaml --inventory ./etc/inventory_quickstart/ apimon start
 
 
 Unless CloudMon release process and invocation interface are clarified it is
