@@ -58,7 +58,7 @@ It defines hosts and groups onto which CloudMon components would be installed
 Configuration file is responsible for defining which CloudMon plugins are going
 to be used, which environments need to be monitored and with which settings.
 
-.. literalinclude:: ./etc/sample_config.yaml
+.. literalinclude:: ../../etc/sample_config.yaml
    :language: yaml
 
 CloudMon can be invoked specifying path to the config repository and the config directory containing config.yaml and inventory.yml files. 
