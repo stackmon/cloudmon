@@ -75,7 +75,8 @@ class CloudMon(App):
         parser.add_argument(
             '--insecure',
             action='store_true',
-            help='Enable config to be passed as single file using config option')
+            help='Use with --config to pass config as a single file'
+        )
         return parser
 
     def initialize_app(self, argv):
@@ -92,15 +93,17 @@ class CloudMon(App):
 
             final_config_dir = Path(self.config.private_data_dir, "_config")
 
-            if self.options.insecure is False:                
+            if self.options.insecure is False:
                 # final_config_dir.mkdir(parents=True, exist_ok=True)
                 config_dir2 = None
                 if self.options.config_repo is not None:
-                    # Checkout config-repo into separate dir and use it as a base
-                    # in final_config_dir
-                    config_dir2 = Path(self.config.private_data_dir, "config_repo")
-                    repo = GitRepoModel(repo_url=self.options.config_repo,
-                                        repo_ref=self.options.config_repo_branch)
+                    # Checkout config-repo into separate dir and use it
+                    # as a base in final_config_dir
+                    config_dir2 = Path(
+                        self.config.private_data_dir, "config_repo")
+                    repo = GitRepoModel(
+                        repo_url=self.options.config_repo,
+                        repo_ref=self.options.config_repo_branch)
                     utils.checkout_git_repository(config_dir2, repo)
                     shutil.copytree(
                         config_dir2, final_config_dir, dirs_exist_ok=True
@@ -111,7 +114,9 @@ class CloudMon(App):
                 if (
                     self.options.config_dir is not None
                     and self.options.config is not None
-                    and Path(self.options.config_dir, self.options.config).exists()
+                    and Path(
+                        self.options.config_dir, self.options.config
+                        ).exists()
                     and self.options.inventory is not None
                     and Path(
                         self.options.config_dir, self.options.inventory
@@ -135,9 +140,9 @@ class CloudMon(App):
                         ).resolve()
                     )
                 else:
-                    raise Exception("""Please specify config directory 
-                                    and check that config.yaml and 
-                                    inventory.yaml exists at specified 
+                    raise Exception("""Please specify config directory
+                                    and check that config.yaml and
+                                    inventory.yaml exists at specified
                                     location
                                     """)
             else:
@@ -152,7 +157,7 @@ class CloudMon(App):
                         Path(self.options.inventory).resolve()
                     )
                 else:
-                    raise Exception("""Please specify path to config 
+                    raise Exception("""Please specify path to config
                                     using --config and path to inventory
                                     using --inventory properly
                                     """)
