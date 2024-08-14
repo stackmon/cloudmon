@@ -109,8 +109,7 @@ class CloudMon(App):
                         config_dir2, final_config_dir, dirs_exist_ok=True
                     )
                 else:
-                    raise Exception("Please specify the config repository.")
-
+                    raise Exception("""Please specify the config repository or use --insecure option. Use 'cloudmon help' for more options. For detailed information, refer to Readme.\n\nhttps://github.com/stackmon/cloudmon.git""") # noqa
                 if (
                     self.options.config_dir is not None
                     and self.options.config is not None
@@ -140,11 +139,7 @@ class CloudMon(App):
                         ).resolve()
                     )
                 else:
-                    raise Exception("""Please specify config directory
-                                    and check that config.yaml and
-                                    inventory.yaml exists at specified
-                                    location
-                                    """)
+                    raise Exception("""Please specify config directory and check that config.yaml and inventory.yaml exists at specified location. For detailed information, refer to Readme.\n\nhttps://github.com/stackmon/cloudmon.git""") # noqa
             else:
                 if (
                     self.options.config is not None
@@ -157,10 +152,7 @@ class CloudMon(App):
                         Path(self.options.inventory).resolve()
                     )
                 else:
-                    raise Exception("""Please specify path to config
-                                    using --config and path to inventory
-                                    using --inventory properly
-                                    """)
+                    raise Exception("""Please specify path to config using --config and path to inventory using --inventory properly. For detailed information, refer to Readme.\n\nhttps://github.com/stackmon/cloudmon.git""") # noqa
 
     def prepare_to_run_command(self, cmd):
         self.LOG.debug("prepare_to_run_command %s", cmd.__class__.__name__)
