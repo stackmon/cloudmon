@@ -7,4 +7,4 @@
   args:
     chdir: "{{ ansible_user_dir }}/{{ zuul_work_dir }}"
     executable: "/bin/bash"
-  ansible.builtin.shell: "source {{ cloudmon_venv_path }}/bin/activate; cloudmon --config-dir etc --config sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure provision"
+  ansible.builtin.shell: "source {{ cloudmon_venv_path }}/bin/activate; cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure provision"
