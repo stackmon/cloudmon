@@ -7,4 +7,15 @@
   args:
     chdir: "{{ ansible_user_dir }}/{{ zuul_work_dir }}"
     executable: "/bin/bash"
-  ansible.builtin.shell: "source {{ cloudmon_venv_path }}/bin/activate; cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure provision"
+  ansible.builtin.shell: |
+    source {{ cloudmon_venv_path }}/bin/activate
+    cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure graphite provision
+    cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure statsd provision
+    cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure postgres provision
+    cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure grafana provision
+
+#   cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure apimon provision
+#   cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure epmon provision
+#   cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure metrics processor provision
+#   cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure globalmon provision
+#   cloudmon --config etc/sample_config.yaml --inventory {{ ansible_user_dir }}/{{ zuul_work_dir }}/inventory --insecure status dashboard provision
