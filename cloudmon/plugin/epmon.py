@@ -81,16 +81,15 @@ class EpmonManager:
         # TODO: we would most likely have same config - cache?
         yaml = YAML()
         if self.config.config_dir is not None and Path(
-                        self.config.config_dir, plugin_ref.config
-                        ).exists():
-            with open(Path(self.config.config_dir, plugin_ref.config), "r") as f:
+            self.config.config_dir, plugin_ref.config
+            ).exists():
+            with open(Path(self.config.config_dir, plugin_ref.config), "r") as f:  # noqa
                 config = yaml.load(f)
         elif Path(plugin_ref.config).exists():
             with open(Path(plugin_ref.config), "r") as f:
                 config = yaml.load(f)
         else:
-            raise RuntimeError("Epmon config not found. Please either use --config-dir and relative path for epmon config in cloudmon config OR use --insecure option with full path of epmon config in cloudmon config") # noqa
-
+            raise RuntimeError("Epmon config not found. Please either use --config-dir and relative path for epmon config in cloudmon config OR use --insecure option with full path of epmon config in cloudmon config")  # noqa
 
         services = dict()
         # Find requested config elements to know which services we want to
