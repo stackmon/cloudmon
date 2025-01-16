@@ -308,10 +308,6 @@ class PluginGlobalmonModel(BaseModel):
     type: Literal["globalmon"]
     image: str
     """Globalmon image to use"""
-    config: str
-    """Path to the globalmon configuration elements
-    (which service which endpoints)
-    """
 
 
 class PluginGlobalmonRefModel(BaseModel):
@@ -323,6 +319,10 @@ class PluginGlobalmonRefModel(BaseModel):
     """Cloud name to test in the environment"""
     globalmons_inventory_group_name: str = "globalmons"
     """ansible group name to deploy globalmon process"""
+    config: str
+    """Path to the globalmon configuration elements
+    (which service which endpoints)
+    """
 
 
 class PluginGeneralModel(BaseModel):
