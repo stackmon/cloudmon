@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdb-redis-cache
+  labels:
+    app.kubernetes.io/component: sdb-redis-cache
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: sdb-redis-cache
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: sdb-redis-cache
+    spec:
+      containers:
+      - name: redis-server
+        image: redis:7.2.4
+        command:
+          - redis-server
+          - "/etc/redis/redis.conf"
+        imagePullPolicy: "IfNotPresent"
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+          - name: sdb-redis-config
+            mountPath: /etc/redis
+            readOnly: true
+          - name: sdb-redis-data
+            mountPath: /data
+      volumes:
+        - name: sdb-redis-config
+          configMap:
+            name: sdb-redis-config
+        - name: sdb-redis-data
+          emptyDir:
+            sizeLimit: 1Gi
