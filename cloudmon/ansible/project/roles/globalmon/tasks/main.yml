@@ -53,6 +53,7 @@
     mode: "{{ item.mode | default(omit) }}"
   loop:
     - { dest: "{{ globalmon_config_dir }}", mode: "0755" }
+    - { dest: "{{ globalmon_log_dir }}", mode: "0777" }
 
 - name: Write env
   become: true

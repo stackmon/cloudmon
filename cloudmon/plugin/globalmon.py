@@ -77,8 +77,16 @@ class GlobalmonManager:
         # Read config file
         # TODO: we would most likely have same config - cache?
         yaml = YAML()
-        with open(Path(plugin_ref.config), "r") as f:
-            config = yaml.load(f)
+        if self.config.config_dir is not None and Path(
+            self.config.config_dir, plugin.config
+            ).exists():
+            with open(Path(self.config.config_dir, plugin.config), "r") as f:  # noqa
+                config = yaml.load(f)
+        elif Path(plugin.config).exists():
+            with open(Path(plugin.config), "r") as f:
+                config = yaml.load(f)
+        else:
+            raise RuntimeError("Globalmon config not found. Please either use --config-dir and relative path for globalmon config in cloudmon config OR use --insecure option with full path of globalmon config in cloudmon config")  # noqa
 
         globalmon_config.services = config["services"]
 

@@ -20,6 +20,7 @@ ExecStart={{ container_runtime }} run \
   --log-opt=path=/dev/null \
 {% endif %}
   -v {{ globalmon_config_dir }}:/etc/globalmon:ro \
+  -v {{ globalmon_log_dir }}:/var/log/globalmon \
   ${GLOBALMON_IMAGE} --config /etc/globalmon/{{ globalmon_config_file_name }}
 
 ExecReload={{ container_runtime }} kill -s SIGHUP {{ globalmon_container_name }}

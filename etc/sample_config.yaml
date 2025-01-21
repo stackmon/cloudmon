@@ -47,8 +47,7 @@ plugins:
     config: sample_config_epmon.yaml
   - name: globalmon
     type: globalmon
-    image: quay.io/stackmon/globalmon:change_6_latest
-    config: globalmon-config.yaml
+    image: quay.io/stackmon/globalmon:change_12_latest
   - name: lb
     type: general
     image: quay.io/opentelekomcloud/cloudmon-plugin-lb
@@ -134,6 +133,7 @@ matrix:
       - name: globalmon
         globalmons_inventory_group_name: globalmons
         cloud_name: production # env in zone has few creds. We need to pick one
+        config: globalmon-config.yaml
 
 clouds_credentials:
   - name: p1
