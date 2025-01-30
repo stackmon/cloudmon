@@ -7,20 +7,21 @@ distro_lookup_path:
 
 globalmon_os_user: "cloudmon"
 globalmon_os_group: "cloudmon"
-globalmon_systemd_service_name: "cloudmon-globalmon.service"
+globalmon_suffix: "prod"
+globalmon_systemd_service_name: "cloudmon-globalmon_{{ globalmon_suffix }}.service"
 globalmon_systemd_unit_path: "{{ ('/etc/systemd/system/'+ globalmon_systemd_service_name) }}"
 globalmon_image: "quay.io/stackmon/globalmon"
 globalmon_config_dir: "/etc/cloudmon"
-globalmon_config_file_name: "cloudmon-globalmon.yaml"
+globalmon_config_file_name: "cloudmon-globalmon_{{ globalmon_suffix }}.yaml"
 globalmon_config_path: "{{ globalmon_config_dir }}/{{ globalmon_config_file_name }}"
-globalmon_log_dir: "/var/log/globalmon"
+globalmon_log_dir: "/var/log/globalmon/{{ globalmon_suffix }}"
 globalmon_secure_config_file_name: "cloudmon-globalmon-secure.yaml"
 globalmon_secure_config_path: "{{ globalmon_config_dir }}/{{ globalmon_secure_config_file_name }}"
 globalmon_env_file_name: "globalmon_env"
 globalmon_env_path: "{{ globalmon_config_dir }}/{{ globalmon_env_file_name }}"
 # globalmon_config:
 # globalmon_secure_config:
-globalmon_container_name: "cloudmon_globalmon"
+globalmon_container_name: "cloudmon_globalmon_{{ globalmon_suffix }}"
 
 container_command: "podman"
 container_runtime: "/usr/bin/{{ container_command }}"
