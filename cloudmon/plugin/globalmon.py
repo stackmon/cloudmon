@@ -157,7 +157,7 @@ class GlobalmonManager:
             globalmon_secure_cfg = dict(clouds=clouds_creds)
 
             extravars = dict(
-                globalmon_suffix = environment,
+                globalmon_suffix=environment,
                 globalmon_group_name=globalmon_config.ansible_group_name,
                 globalmon_image=globalmon_config.image,
                 globalmon_config_dir="/home/ubuntu",
@@ -184,8 +184,9 @@ class GlobalmonManager:
                 "Stopping Globalmon in monitoring zone %s",
                 globalmon_config.zone,
             )
+            environment = globalmon_config.environment
             extravars = dict(
-                globalmon_service_name=f"cloudmon-globalmon_{globalmon_config.environment}",
+                globalmon_service_name=f"cloudmon-globalmon_{environment}",
                 globalmon_group_name=globalmon_config.ansible_group_name,
             )
             r = ansible_runner.run(
@@ -206,8 +207,9 @@ class GlobalmonManager:
                 "Starting Globalmon in monitoring zone %s",
                 globalmon_config.zone,
             )
+            environment = globalmon_config.environment
             extravars = dict(
-                globalmon_service_name=f"cloudmon-globalmon_{globalmon_config.environment}",
+                globalmon_service_name=f"cloudmon-globalmon_{environment}",
                 globalmon_group_name=globalmon_config.ansible_group_name,
             )
             r = ansible_runner.run(
