@@ -7,5 +7,5 @@
   tasks:
     - name: Stop globalmon
       ansible.builtin.service:
-        name: "cloudmon-globalmon"
+        name: "{{ globalmon_service_name }}"
         state: "stopped"
