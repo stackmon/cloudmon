@@ -65,13 +65,15 @@ class GlobalmonManager:
     def process_plugin_entry(self, plugin_ref, matrix_entry, plugin):
         env_name = matrix_entry.env
         zone = matrix_entry.monitoring_zone
-        globalmon_config = self.globalmon_configs.setdefault(
-            zone, GlobalmonConfig())
+        key = f"{zone}_{env_name}"  # Unique key per env + zone
+        
+        globalmon_config = self.globalmon_configs.setdefault(key, GlobalmonConfig())
         globalmon_config.environment = env_name
         globalmon_config.zone = zone
         ansible_group_name = plugin.globalmons_inventory_group_name
         globalmon_config.ansible_group_name = ansible_group_name
         globalmon_config.image = plugin_ref.image
+
         config = None
 
         # Read config file
@@ -89,21 +91,15 @@ class GlobalmonManager:
             raise RuntimeError("Globalmon config not found. Please either use --config-dir and relative path for globalmon config in cloudmon config OR use --insecure option with full path of globalmon config in cloudmon config")  # noqa
 
         globalmon_config.services = config["services"]
-
         globalmon_config.watch_clouds[env_name] = dict(
-            # which services
             services=globalmon_config.services,
-            # how cloud is named
             cloud=plugin.cloud_name,
         )
 
     def provision(self, options):
-
-        for _, globalmon_config in self.globalmon_configs.items():
-            self.log.info(
-                "Provisioning Globalmon in monitoring zone %s",
-                globalmon_config.zone,
-            )
+        for key, globalmon_config in self.globalmon_configs.items():
+            self.log.info("Provisioning Globalmon in monitoring zone %s for env %s", 
+                        globalmon_config.zone, globalmon_config.environment)
 
             statsd_group_name = self.config.model.get_monitoring_zone_by_name(
                 globalmon_config.zone
@@ -176,7 +172,8 @@ class GlobalmonManager:
                 verbosity=3,
             )
             if r.rc != 0:
-                raise RuntimeError("Error provisioning Globalmon")
+                raise RuntimeError(f"Error provisioning Globalmon in {zone} for {environment}")
+
 
     def stop(self, options):
         for _, globalmon_config in self.globalmon_configs.items():
