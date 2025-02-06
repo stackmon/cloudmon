@@ -66,8 +66,9 @@ class GlobalmonManager:
         env_name = matrix_entry.env
         zone = matrix_entry.monitoring_zone
         key = f"{zone}_{env_name}"  # Unique key per env + zone
-        
-        globalmon_config = self.globalmon_configs.setdefault(key, GlobalmonConfig())
+
+        globalmon_config = self.globalmon_configs.setdefault(
+            key, GlobalmonConfig())
         globalmon_config.environment = env_name
         globalmon_config.zone = zone
         ansible_group_name = plugin.globalmons_inventory_group_name
@@ -98,8 +99,10 @@ class GlobalmonManager:
 
     def provision(self, options):
         for key, globalmon_config in self.globalmon_configs.items():
-            self.log.info("Provisioning Globalmon in monitoring zone %s for env %s", 
-                        globalmon_config.zone, globalmon_config.environment)
+            self.log.info(
+                "Provisioning Globalmon in monitoring zone %s for env %s",
+                globalmon_config.zone,
+                globalmon_config.environment)
 
             statsd_group_name = self.config.model.get_monitoring_zone_by_name(
                 globalmon_config.zone
@@ -172,8 +175,8 @@ class GlobalmonManager:
                 verbosity=3,
             )
             if r.rc != 0:
-                raise RuntimeError(f"Error provisioning Globalmon in {zone} for {environment}")
-
+                raise RuntimeError(
+                    f"Error provisioning Globalmon in {zone} for {environment}") # noqa
 
     def stop(self, options):
         for _, globalmon_config in self.globalmon_configs.items():
