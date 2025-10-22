@@ -4,7 +4,7 @@
 count=0
 
 for i in $(seq 3);do
-  curl -s http://localhost:8082/lb_check -m 2 > /dev/null
+  curl -s -k http://localhost:443/lb_check -m 2 > /dev/null
   if [ $? -ne 0 ];then
     ((count=count+1))
   fi
