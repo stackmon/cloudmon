@@ -1,1 +1,2 @@
 EPMON_IMAGE={{ epmon_image }}
+DOCKER_API_VERSION=1.41
