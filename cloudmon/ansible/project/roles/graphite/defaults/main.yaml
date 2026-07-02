@@ -3,8 +3,8 @@ graphite_sync_group: graphite
 
 graphite_config_location: "/etc/graphite"
 graphite_retentions_carbon: "60:90d"
-graphite_retentions_stats: "10s:1d,1m:40d,10m:3y"
-graphite_retentions_default: "60s:1d,5m:30d,1h:1y"
+graphite_retentions_stats: "10s:7d,1m:40d,10m:3y"
+graphite_retentions_default: "60s:7d,5m:30d,1h:1y"
 
 graphite_relay: false
 graphite_relay_port_line: 2013
