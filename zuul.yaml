@@ -26,12 +26,12 @@
     check:
       jobs:
         - otc-tox-pep8
-        - otc-tox-py39
+        - otc-tox-py310
         - otc-tox-docs
         - cloudmon-deploy-ubuntu-jammy
     gate:
       jobs:
         - otc-tox-pep8
-        - otc-tox-py39
+        - otc-tox-py310
         - otc-tox-docs
         - cloudmon-deploy-ubuntu-jammy
