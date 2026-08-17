@@ -1,3 +1,10 @@
+---
+remove_packages: []
+
 distro_packages:
   - docker.io
+  - netcat
+  - cron
+  - apparmor-profiles
+
 container_command: docker

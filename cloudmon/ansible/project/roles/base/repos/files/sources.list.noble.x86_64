@@ -1,0 +1,5 @@
+deb http://de.archive.ubuntu.com/ubuntu noble main universe
+deb http://de.archive.ubuntu.com/ubuntu noble-updates main universe
+deb http://de.archive.ubuntu.com/ubuntu noble-backports main universe
+deb http://de.archive.ubuntu.com/ubuntu noble-security main universe
+deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu   noble stable

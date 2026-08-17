@@ -1,6 +1,8 @@
 ---
-ansible_python_interpreter: "/usr/bin/python3"
+remove_packages: []
+
 packages:
   - docker.io
   - firewalld
+  - python3-firewall
 container_command: docker
