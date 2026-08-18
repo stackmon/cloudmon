@@ -8,9 +8,13 @@
 # Docker is needed because cloudmon's graphite/statsd/postgres
 # provisioning playbooks deploy containerized components via
 # ansible-runner.
+#
+# NOTE: the pod has no systemd as PID 1, so the docker/containerd
+# daemons are started directly (background processes), not via the
+# service or systemd modules.
 - hosts: all
   become: true
-  gather_facts: true
+  gather_facts: false
   vars:
     docker_ce_packages:
       - docker-ce
@@ -41,9 +45,11 @@
         state: directory
         mode: '0755'
 
+    # Pod environment: known zuul-debian pod (Debian bookworm, amd64).
+    # No ansible_facts available — hardcode values.
     - name: Download Docker official GPG key
       ansible.builtin.get_url:
-        url: "https://download.docker.com/linux/{{ ansible_facts['os_release']['ID'] }}/gpg"
+        url: "https://download.docker.com/linux/debian/gpg"
         dest: /etc/apt/keyrings/docker.asc
         mode: '0644'
 
@@ -52,10 +58,10 @@
         dest: /etc/apt/sources.list.d/docker-ce.list
         mode: '0644'
         content: >-
-          deb [arch={{ ansible_facts['architecture'] }}
+          deb [arch=amd64
           signed-by=/etc/apt/keyrings/docker.asc]
-          https://download.docker.com/linux/{{ ansible_facts['os_release']['ID'] }}
-          {{ ansible_facts['os_release']['VERSION_CODENAME'] }} stable
+          https://download.docker.com/linux/debian
+          bookworm stable
 
     # Remove conflicting Docker packages that may be in the distro image
     - name: Remove conflicting Docker packages
@@ -88,21 +94,26 @@
         - /var/run/docker.pid
       failed_when: false
 
-    # Start and enable containerd and docker
-    - name: Start and enable containerd
-      ansible.builtin.systemd:
-        name: containerd
-        state: started
-        enabled: true
+    # Start daemons directly — the pod has no init system to do it.
+    - name: Start containerd daemon
+      ansible.builtin.shell:
+        cmd: nohup /usr/bin/containerd > /var/log/containerd.log 2>&1 &
+      changed_when: true
 
-    - name: Start and enable Docker
-      ansible.builtin.systemd:
-        name: "{{ item }}"
-        state: started
-        enabled: true
-      loop:
-        - docker.socket
-        - docker.service
+    - name: Wait for containerd socket (up to 30s)
+      ansible.builtin.wait_for:
+        path: /run/containerd/containerd.sock
+        timeout: 30
+
+    - name: Start dockerd daemon
+      ansible.builtin.shell:
+        cmd: nohup /usr/bin/dockerd > /var/log/dockerd.log 2>&1 &
+      changed_when: true
+
+    - name: Wait for Docker socket to appear (up to 60s)
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 60
 
     - name: Verify Docker daemon is running
       ansible.builtin.command:
