@@ -101,6 +101,19 @@
       failed_when: false
 
     # Start daemons directly — the pod has no init system to do it.
+    #
+    # dockerd flags:
+    #   --exec-opt native.cgroupdriver=cgroupfs
+    #     The pod has no systemd; dockerd's default cgroup driver is
+    #     "systemd" and would fail.
+    #   --iptables=false  --ip6tables=false
+    #     The pod may lack CAP_NET_ADMIN even when "privileged" is set
+    #     (depending on the cluster's security policy).  Disabling
+    #     iptables lets dockerd start without NAT rules; containers
+    #     use host networking which is all the provision playbooks need
+    #     (single-node, localhost inventory).
+    #   --bridge=none
+    #     Same reason — no bridge network needed.
     - name: Start containerd daemon
       ansible.builtin.shell:
         cmd: nohup /usr/bin/containerd > /var/log/containerd.log 2>&1 &
@@ -113,7 +126,13 @@
 
     - name: Start dockerd daemon
       ansible.builtin.shell:
-        cmd: nohup /usr/bin/dockerd > /var/log/dockerd.log 2>&1 &
+        cmd: >-
+          nohup /usr/bin/dockerd
+          --exec-opt native.cgroupdriver=cgroupfs
+          --iptables=false
+          --ip6tables=false
+          --bridge=none
+          > /var/log/dockerd.log 2>&1 &
       changed_when: true
 
     - name: Wait for Docker socket to appear (up to 60s)
