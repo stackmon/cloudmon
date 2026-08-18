@@ -1,0 +1,115 @@
+---
+# Main run playbook for the Kubernetes/pod-based cloudmon-deploy job.
+#
+# The whole CloudMon stack is deployed on a single `zuul-debian` pod
+# (no separate controller / worker split). Docker CE is installed
+# inline here because the OTC global role `ensure-docker` cannot be
+# verified.
+#
+# Docker is needed because cloudmon's graphite/statsd/postgres
+# provisioning playbooks deploy containerized components via
+# ansible-runner.
+- hosts: all
+  become: true
+  vars:
+    docker_ce_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+      register: prereq_result
+      retries: 5
+      until: prereq_result is success
+
+    # Add Docker CE apt repository
+    - name: Ensure /etc/apt/keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker official GPG key
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker CE apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}
+          {{ ansible_facts.lsb_release['codename'] }} stable
+        state: present
+
+    # Remove conflicting Docker packages that may be in the distro image
+    - name: Remove conflicting Ubuntu Docker packages
+      ansible.builtin.package:
+        state: absent
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+      failed_when: false
+
+    # Install Docker CE
+    - name: Install Docker CE packages
+      ansible.builtin.apt:
+        name: "{{ docker_ce_packages }}"
+        state: present
+      register: docker_install
+      retries: 5
+      until: docker_install is success
+
+    # Clean up stale sockets after package changes
+    - name: Remove stale Docker socket and PID files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/run/docker.sock
+        - /var/run/docker.pid
+      failed_when: false
+
+    # Start and enable containerd and docker
+    - name: Start and enable containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+
+    - name: Start and enable Docker
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - docker.socket
+        - docker.service
+
+    - name: Verify Docker daemon is running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_info
+      changed_when: false
+
+- hosts: all
+  become: true
+  roles:
+    - install_cloudmon
+    - deploy_cloudmon_k8s

@@ -1,0 +1,33 @@
+all:
+  hosts:
+    # The whole CloudMon stack is deployed on the single `zuul-debian`
+    # pod, so there is no separate worker node. Everything runs
+    # "localhost" from the pod's point of view.
+    localhost:
+      ansible_host: localhost
+      internal_address: localhost
+  children:
+    statsd:
+      hosts:
+        - localhost
+    graphite:
+      hosts:
+        - localhost
+    grafana:
+      hosts:
+        - localhost
+    schedulers:
+      hosts:
+        - localhost
+    executors:
+      hosts:
+        - localhost
+    epmons:
+      hosts:
+        - localhost
+    globalmons:
+      hosts:
+        - localhost
+    postgres:
+      hosts:
+        - localhost

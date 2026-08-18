@@ -20,6 +20,31 @@
         - name: worker
           label: ubuntu-jammy
 
+# Kubernetes/pod-based deployment. Instead of provisioning two ubuntu-jammy
+# VMs (controller + worker) this runs the whole CloudMon stack on a single
+# `zuul-debian` pod. The pod runs as root but ships without sudo and has no
+# multi-node SSH setup, so it uses its own playbooks (playbooks_k8s) that
+# bootstrap sudo + python and deploy on one node.
+- job:
+    name: cloudmon-deploy-k8s
+    abstract: true
+    description: |
+      Deploy CloudMon on Kubernetes pods
+    pre-run: playbooks_k8s/pre.yaml
+    run: playbooks_k8s/run.yaml
+    files:
+      - ^cloudmon/*
+    vars:
+      python_version: "3.11"
+
+- job:
+    name: cloudmon-deploy-zuul-debian
+    parent: cloudmon-deploy-k8s
+    nodeset:
+      nodes:
+        - name: zuul-debian
+          label: zuul-debian
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -28,10 +53,10 @@
         - otc-tox-pep8
         - otc-tox-py311
         - otc-tox-docs
-        - cloudmon-deploy-ubuntu-jammy
+        - cloudmon-deploy-zuul-debian
     gate:
       jobs:
         - otc-tox-pep8
         - otc-tox-py311
         - otc-tox-docs
-        - cloudmon-deploy-ubuntu-jammy
+        - cloudmon-deploy-zuul-debian
