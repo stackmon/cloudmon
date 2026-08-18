@@ -121,11 +121,21 @@
         path: /var/run/docker.sock
         timeout: 60
 
-    - name: Verify Docker daemon is running
+    - name: Wait for Docker daemon to be ready (docker info, retries)
       ansible.builtin.command:
         cmd: docker info
       register: docker_info
       changed_when: false
+      retries: 15
+      delay: 5
+      until: docker_info.rc == 0
+
+    - name: Show Docker version
+      ansible.builtin.command:
+        cmd: docker --version
+      register: docker_ver
+      changed_when: false
+      failed_when: false
 
 - hosts: all
   become: true
