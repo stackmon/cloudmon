@@ -121,21 +121,43 @@
         path: /var/run/docker.sock
         timeout: 60
 
-    - name: Wait for Docker daemon to be ready (docker info, retries)
-      ansible.builtin.command:
-        cmd: docker info
-      register: docker_info
-      changed_when: false
-      retries: 15
-      delay: 5
-      until: docker_info.rc == 0
+    # After 75s of retries the daemon still hasn't started. Capture
+    # stderr/stdout from the last attempt, show the process list, and
+    # dump the daemon log so we can diagnose why it fails.
+    - name: Show docker info output from last attempt
+      ansible.builtin.debug:
+        var: docker_info
+      when: docker_info is defined
 
-    - name: Show Docker version
+    - name: Check if dockerd process exists
       ansible.builtin.command:
-        cmd: docker --version
-      register: docker_ver
+        cmd: ps aux | grep -v grep | grep dockerd
+      register: dockerd_ps
       changed_when: false
       failed_when: false
+
+    - name: Show dockerd log (last 100 lines)
+      ansible.builtin.command:
+        cmd: tail -n 100 /var/log/dockerd.log
+      register: dockerd_tail
+      changed_when: false
+      failed_when: false
+
+    - name: Show containerd log (last 100 lines)
+      ansible.builtin.command:
+        cmd: tail -n 100 /var/log/containerd.log
+      register: containerd_tail
+      changed_when: false
+      failed_when: false
+
+    - name: Fail with diagnostic context
+      ansible.builtin.fail:
+        msg: >-
+          Docker daemon failed to start after 75s.
+          dockerd process: {{ dockerd_ps.stdout_lines | default(['no process found']) }}
+          Last docker info: {{ docker_info.msg | default('N/A') }}
+          dockerd log:\n{{ dockerd_tail.stdout | default('no log file') }}
+          containerd log:\n{{ containerd_tail.stdout | default('no log file') }}
 
 - hosts: all
   become: true
