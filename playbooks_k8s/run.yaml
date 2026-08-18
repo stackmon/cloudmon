@@ -63,6 +63,12 @@
           https://download.docker.com/linux/debian
           bookworm stable
 
+    # Must refresh apt cache after adding the Docker CE repo, otherwise
+    # `apt` has no idea about the `docker-ce` packages.
+    - name: Update apt cache after adding Docker CE repository
+      ansible.builtin.apt:
+        update_cache: true
+
     # Remove conflicting Docker packages that may be in the distro image
     - name: Remove conflicting Docker packages
       ansible.builtin.package:
