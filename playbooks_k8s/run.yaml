@@ -3,14 +3,14 @@
 #
 # The whole CloudMon stack is deployed on a single `zuul-debian` pod
 # (no separate controller / worker split). Docker CE is installed
-# inline here because the OTC global role `ensure-docker` cannot be
-# verified.
+# inline here because there is no verified global ensure-docker role.
 #
 # Docker is needed because cloudmon's graphite/statsd/postgres
 # provisioning playbooks deploy containerized components via
 # ansible-runner.
 - hosts: all
   become: true
+  gather_facts: true
   vars:
     docker_ce_packages:
       - docker-ce
@@ -43,20 +43,22 @@
 
     - name: Download Docker official GPG key
       ansible.builtin.get_url:
-        url: "https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg"
+        url: "https://download.docker.com/linux/{{ ansible_facts['os_release']['ID'] }}/gpg"
         dest: /etc/apt/keyrings/docker.asc
         mode: '0644'
 
     - name: Add Docker CE apt repository
-      ansible.builtin.apt_repository:
-        repo: >-
-          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
-          https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}
-          {{ ansible_facts.lsb_release['codename'] }} stable
-        state: present
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker-ce.list
+        mode: '0644'
+        content: >-
+          deb [arch={{ ansible_facts['architecture'] }}
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/{{ ansible_facts['os_release']['ID'] }}
+          {{ ansible_facts['os_release']['VERSION_CODENAME'] }} stable
 
     # Remove conflicting Docker packages that may be in the distro image
-    - name: Remove conflicting Ubuntu Docker packages
+    - name: Remove conflicting Docker packages
       ansible.builtin.package:
         state: absent
         name:
