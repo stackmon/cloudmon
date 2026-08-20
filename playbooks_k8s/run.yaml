@@ -182,6 +182,21 @@
 
 - hosts: all
   become: true
+  pre_tasks:
+    # The node image ships none of these: ansible.builtin.pip imports
+    # `packaging` on the target, and cloudmon_venv_path makes it build a
+    # venv, which needs the venv/virtualenv tooling.
+    - name: Install Python packaging and venv tooling
+      ansible.builtin.apt:
+        name:
+          - python3-packaging
+          - python3-pip
+          - python3-venv
+          - virtualenv
+        state: present
+      register: py_prereq
+      retries: 5
+      until: py_prereq is success
   roles:
     - install_cloudmon
     - deploy_cloudmon_k8s
