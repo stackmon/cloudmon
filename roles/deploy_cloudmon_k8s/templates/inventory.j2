@@ -7,27 +7,30 @@ all:
       ansible_host: localhost
       internal_address: localhost
   children:
+    # A group's `hosts` must be a mapping, not a list -- a list makes Ansible
+    # reject the whole inventory ("requires a dictionary"), after which every
+    # play matches no hosts.
     statsd:
       hosts:
-        - localhost
+        localhost:
     graphite:
       hosts:
-        - localhost
+        localhost:
     grafana:
       hosts:
-        - localhost
+        localhost:
     schedulers:
       hosts:
-        - localhost
+        localhost:
     executors:
       hosts:
-        - localhost
+        localhost:
     epmons:
       hosts:
-        - localhost
+        localhost:
     globalmons:
       hosts:
-        - localhost
+        localhost:
     postgres:
       hosts:
-        - localhost
+        localhost:
