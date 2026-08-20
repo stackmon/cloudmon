@@ -6,7 +6,7 @@
 remove_packages: []
 
 distro_packages:
-  - netcat
+  - netcat-openbsd
   - cron
   - apparmor-profiles
 

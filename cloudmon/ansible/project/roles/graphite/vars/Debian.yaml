@@ -6,6 +6,6 @@
 remove_packages: []
 
 packages:
-  - netcat
+  - netcat-openbsd
 
 container_command: docker
