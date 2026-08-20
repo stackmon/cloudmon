@@ -43,7 +43,7 @@
     nodeset:
       nodes:
         - name: zuul-debian
-          label: zuul-debian-docker
+          label: zuul-debian-systemd
 
 - project:
     merge-mode: squash-merge

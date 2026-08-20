@@ -100,40 +100,22 @@
         - /var/run/docker.pid
       failed_when: false
 
-    # Start daemons directly — the pod has no init system to do it.
-    #
-    # dockerd flags:
-    #   --exec-opt native.cgroupdriver=cgroupfs
-    #     The pod has no systemd; dockerd's default cgroup driver is
-    #     "systemd" and would fail.
-    #   --iptables=false  --ip6tables=false
-    #     The pod may lack CAP_NET_ADMIN even when "privileged" is set
-    #     (depending on the cluster's security policy).  Disabling
-    #     iptables lets dockerd start without NAT rules; containers
-    #     use host networking which is all the provision playbooks need
-    #     (single-node, localhost inventory).
-    #   --bridge=none
-    #     Same reason — no bridge network needed.
-    - name: Start containerd daemon
-      ansible.builtin.shell:
-        cmd: nohup /usr/bin/containerd > /var/log/containerd.log 2>&1 &
-      changed_when: true
+    # The node runs systemd as PID 1 (zuul-debian-systemd label), so let it own
+    # the daemons. Starting them by hand would collide with the units the
+    # cloudmon roles later enable. Daemon settings (MTU, cgroupdriver,
+    # iptables/bridge) are seeded into /etc/docker/daemon.json by the pod spec.
+    - name: Start containerd via systemd
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+        daemon_reload: true
 
-    - name: Wait for containerd socket (up to 30s)
-      ansible.builtin.wait_for:
-        path: /run/containerd/containerd.sock
-        timeout: 30
-
-    - name: Start dockerd daemon
-      ansible.builtin.shell:
-        cmd: >-
-          nohup /usr/bin/dockerd
-          --exec-opt native.cgroupdriver=cgroupfs
-          --iptables=false
-          --ip6tables=false
-          --bridge=none
-          > /var/log/dockerd.log 2>&1 &
-      changed_when: true
+    - name: Start dockerd via systemd
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
 
     - name: Wait for Docker socket to appear (up to 60s)
       ansible.builtin.wait_for:
@@ -158,14 +140,14 @@
 
         - name: Show dockerd log (last 100 lines)
           ansible.builtin.command:
-            cmd: tail -n 100 /var/log/dockerd.log
+            cmd: journalctl -u docker --no-pager -n 100
           register: dockerd_tail
           changed_when: false
           failed_when: false
 
         - name: Show containerd log (last 100 lines)
           ansible.builtin.command:
-            cmd: tail -n 100 /var/log/containerd.log
+            cmd: journalctl -u containerd --no-pager -n 100
           register: containerd_tail
           changed_when: false
           failed_when: false
@@ -175,10 +157,10 @@
             msg: |-
               Docker daemon failed to start after 60s.
               dockerd process: {{ dockerd_ps.stdout_lines | default(['no process found']) }}
-              dockerd log:
-              {{ dockerd_tail.stdout | default('no log file') }}
-              containerd log:
-              {{ containerd_tail.stdout | default('no log file') }}
+              docker journal:
+              {{ dockerd_tail.stdout | default('no journal output') }}
+              containerd journal:
+              {{ containerd_tail.stdout | default('no journal output') }}
 
 - hosts: all
   become: true
