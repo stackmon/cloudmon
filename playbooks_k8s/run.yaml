@@ -139,47 +139,64 @@
       ansible.builtin.wait_for:
         path: /var/run/docker.sock
         timeout: 60
+      register: docker_sock
+      ignore_errors: true
 
-    # After 75s of retries the daemon still hasn't started. Capture
-    # stderr/stdout from the last attempt, show the process list, and
-    # dump the daemon log so we can diagnose why it fails.
-    - name: Show docker info output from last attempt
-      ansible.builtin.debug:
-        var: docker_info
-      when: docker_info is defined
+    # Only runs when the socket never appeared. wait_for above is
+    # non-fatal so these diagnostics can be collected before failing;
+    # previously it aborted the play, so they never ran on failure, and
+    # the fail below had no condition, so it always ran on success.
+    - name: Diagnose why the docker daemon did not start
+      when: docker_sock is failed
+      block:
+        - name: Check if dockerd process exists
+          ansible.builtin.command:
+            cmd: pgrep -a dockerd
+          register: dockerd_ps
+          changed_when: false
+          failed_when: false
 
-    - name: Check if dockerd process exists
-      ansible.builtin.command:
-        cmd: ps aux | grep -v grep | grep dockerd
-      register: dockerd_ps
-      changed_when: false
-      failed_when: false
+        - name: Show dockerd log (last 100 lines)
+          ansible.builtin.command:
+            cmd: tail -n 100 /var/log/dockerd.log
+          register: dockerd_tail
+          changed_when: false
+          failed_when: false
 
-    - name: Show dockerd log (last 100 lines)
-      ansible.builtin.command:
-        cmd: tail -n 100 /var/log/dockerd.log
-      register: dockerd_tail
-      changed_when: false
-      failed_when: false
+        - name: Show containerd log (last 100 lines)
+          ansible.builtin.command:
+            cmd: tail -n 100 /var/log/containerd.log
+          register: containerd_tail
+          changed_when: false
+          failed_when: false
 
-    - name: Show containerd log (last 100 lines)
-      ansible.builtin.command:
-        cmd: tail -n 100 /var/log/containerd.log
-      register: containerd_tail
-      changed_when: false
-      failed_when: false
-
-    - name: Fail with diagnostic context
-      ansible.builtin.fail:
-        msg: >-
-          Docker daemon failed to start after 75s.
-          dockerd process: {{ dockerd_ps.stdout_lines | default(['no process found']) }}
-          Last docker info: {{ docker_info.msg | default('N/A') }}
-          dockerd log:\n{{ dockerd_tail.stdout | default('no log file') }}
-          containerd log:\n{{ containerd_tail.stdout | default('no log file') }}
+        - name: Fail with diagnostic context
+          ansible.builtin.fail:
+            msg: |-
+              Docker daemon failed to start after 60s.
+              dockerd process: {{ dockerd_ps.stdout_lines | default(['no process found']) }}
+              dockerd log:
+              {{ dockerd_tail.stdout | default('no log file') }}
+              containerd log:
+              {{ containerd_tail.stdout | default('no log file') }}
 
 - hosts: all
   become: true
+  pre_tasks:
+    # The node image ships none of these: ansible.builtin.pip imports
+    # `packaging` on the target, and cloudmon_venv_path makes it build a
+    # venv, which needs the venv/virtualenv tooling.
+    - name: Install Python packaging and venv tooling
+      ansible.builtin.apt:
+        name:
+          - python3-packaging
+          - python3-pip
+          - python3-venv
+          - virtualenv
+        state: present
+      register: py_prereq
+      retries: 5
+      until: py_prereq is success
   roles:
     - install_cloudmon
     - deploy_cloudmon_k8s

@@ -36,7 +36,7 @@
   retries: 5
 
 - name: Clean up stale sockets after package changes
-  ansible.builtin.block:
+  block:
     - name: Stop Docker service and socket
       ansible.builtin.systemd:
         name: "{{ item }}"
@@ -59,7 +59,7 @@
     - ansible_facts.distribution_major_version == '22'
 
 - name: Clear systemd rate-limits and prepare containerd
-  ansible.builtin.block:
+  block:
     - name: Reset systemd failed state for Docker units
       ansible.builtin.systemd:
         name: "{{ item }}"
@@ -96,6 +96,7 @@
   loop: "{{ play_hosts }}"
 
 - ansible.builtin.include_tasks: firewall.yml
+  when: cloudmon_manage_firewall | default(true) | bool
 
 - name: Ensure directories exist
   become: true
