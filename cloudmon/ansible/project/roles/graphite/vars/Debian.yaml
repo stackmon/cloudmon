@@ -7,5 +7,7 @@ remove_packages: []
 
 packages:
   - netcat-openbsd
+  # ansible.builtin.cron needs the crontab binary.
+  - cron
 
 container_command: docker
