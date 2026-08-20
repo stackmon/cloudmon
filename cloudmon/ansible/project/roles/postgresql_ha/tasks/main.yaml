@@ -102,6 +102,7 @@
   when: "item != inventory_hostname"
 
 - ansible.builtin.include_tasks: firewall.yml
+  when: cloudmon_manage_firewall | default(true) | bool
 
 - name: Create postgres group
   become: yes

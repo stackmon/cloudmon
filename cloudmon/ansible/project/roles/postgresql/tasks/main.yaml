@@ -91,6 +91,7 @@
     - ansible_facts.distribution_major_version == '22'
 
 - include_tasks: firewall.yml
+  when: cloudmon_manage_firewall | default(true) | bool
 
 - name: Write Postgres Systemd unit file
   become: true
