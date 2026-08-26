@@ -1,5 +1,6 @@
 ---
+remove_packages: []
+
 packages:
   - docker.io
-
 container_command: docker

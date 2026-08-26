@@ -1,0 +1,19 @@
+---
+remove_packages:
+  - docker.io
+  - docker-doc
+  - docker-compose
+  - podman-docker
+  - containerd
+  - runc
+
+packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - python3-psycopg2
+
+container_command: docker
+postgresql_data_dir: "/var/lib/psql"

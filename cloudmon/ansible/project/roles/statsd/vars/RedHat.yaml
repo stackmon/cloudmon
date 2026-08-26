@@ -1,3 +1,7 @@
+---
+remove_packages: []
+
 distro_packages:
   - podman
+
 container_command: podman

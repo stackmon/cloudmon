@@ -1,7 +1,11 @@
 ---
+# On Debian (zuul-debian pod), the container runtime (docker-ce) is installed
+# and started by the pod bootstrap in playbooks_k8s/run.yaml, which runs
+# before the provisioning roles. This vars file only declares non-Docker
+# application dependencies to avoid redundant/ conflicting Docker installs.
+remove_packages: []
+
 packages:
-  - docker.io
   - python3-psycopg2
 
 container_command: docker
-postgresql_data_dir: "/var/lib/psql"

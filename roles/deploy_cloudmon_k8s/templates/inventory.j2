@@ -1,0 +1,43 @@
+all:
+  hosts:
+    # The whole CloudMon stack is deployed on the single `zuul-debian`
+    # pod, so there is no separate worker node. Everything runs
+    # "localhost" from the pod's point of view.
+    localhost:
+      ansible_host: localhost
+      # Defining localhost explicitly loses Ansible's implicit local
+      # connection, and the pod runs no sshd, so this must be set.
+      ansible_connection: local
+      internal_address: localhost
+  vars:
+    # The pod has no service manager and no host firewall, so firewalld and
+    # iptables service management cannot work here.
+    cloudmon_manage_firewall: false
+  children:
+    # A group's `hosts` must be a mapping, not a list -- a list makes Ansible
+    # reject the whole inventory ("requires a dictionary"), after which every
+    # play matches no hosts.
+    statsd:
+      hosts:
+        localhost:
+    graphite:
+      hosts:
+        localhost:
+    grafana:
+      hosts:
+        localhost:
+    schedulers:
+      hosts:
+        localhost:
+    executors:
+      hosts:
+        localhost:
+    epmons:
+      hosts:
+        localhost:
+    globalmons:
+      hosts:
+        localhost:
+    postgres:
+      hosts:
+        localhost:

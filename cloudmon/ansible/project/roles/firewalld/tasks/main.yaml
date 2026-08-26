@@ -1,64 +1,7 @@
-- name: Include OS-specific variables
-  include_vars: "{{ lookup('first_found', params) }}"
-  vars:
-    params:
-      files: "{{ distro_lookup_path }}"
-      paths:
-        - 'vars'
-
-- name: Install firewalld
-  ansible.builtin.package:
-    name: "{{ item }}"
-    state: "present"
-  loop:
-    - "{{ packages }}"
-  when: "ansible_facts.pkg_mgr != 'atomic_container'"
-
-- name: Enable services
-  ansible.posix.firewalld:
-    permanent: "yes"
-    service: "{{ item }}"
-    state: "enabled"
-  loop: "{{ firewalld_services_enable }}"
-  notify:
-    - Reload firewalld
-
-- name: Disable services
-  ansible.posix.firewalld:
-    permanent: "yes"
-    service: "{{ item }}"
-    state: "disabled"
-  loop: "{{ firewalld_services_disable }}"
-  notify:
-    - Reload firewalld
-
-- name: Enable ports
-  ansible.posix.firewalld:
-    permanent: "yes"
-    port: "{{ item }}"
-    state: "enabled"
-  loop: "{{ firewalld_ports_enable }}"
-  notify:
-    - Reload firewalld
-
-- name: Disable ports
-  ansible.posix.firewalld:
-    permanent: "yes"
-    port: "{{ item }}"
-    state: "disabled"
-  loop: "{{ firewalld_ports_disable }}"
-  notify:
-    - Reload firewalld
-
-- name: Disable iptables
-  ansible.builtin.service:
-    name: "iptables"
-    state: "stopped"
-    enabled: "false"
-  ignore_errors: "true"
-
-- name: Enable firewalld
-  ansible.builtin.service:
-    name: "firewalld"
-    state: "started"
-    enabled: "true"
+---
+# Host firewall management is meaningless in a container (no service manager,
+# no host firewall), so allow targets to opt out. Defaults to true, so
+# existing VM-based deployments are unaffected.
+- name: Manage host firewall
+  ansible.builtin.include_tasks: manage.yaml
+  when: cloudmon_manage_firewall | default(true) | bool

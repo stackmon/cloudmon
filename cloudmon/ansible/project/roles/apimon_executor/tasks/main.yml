@@ -1,25 +1,94 @@
 ---
-# tasks file for executor
-
 - name: Include variables
-  include_vars: "{{ lookup('first_found', params) }}"
+  ansible.builtin.include_vars: "{{ lookup('first_found', params) }}"
   vars:
     params:
       files: "{{ distro_lookup_path }}"
       paths:
         - "vars"
 
+- name: Update apt cache on Ubuntu
+  ansible.builtin.apt:
+    update_cache: true
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.pkg_mgr != 'atomic_container'
+
+- name: Remove conflicting Ubuntu Docker packages
+  ansible.builtin.package:
+    state: absent
+    name: "{{ remove_packages }}"
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - remove_packages is defined
+    - ansible_facts.pkg_mgr != 'atomic_container'
+  register: remove_result
+  until: remove_result is success
+  retries: 5
+
 - name: Install required packages
-  become: true
   ansible.builtin.package:
     state: present
-    name: "{{ item }}"
-  loop: 
-    - "{{ packages }}"
+    name: "{{ packages }}"
   when: "ansible_facts.pkg_mgr != 'atomic_container'"
-  register: task_result
-  until: task_result is success
+  register: install_result
+  until: install_result is success
   retries: 5
+
+- name: Clean up stale sockets after package changes
+  block:
+    - name: Stop Docker service and socket
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - docker.service
+        - docker.socket
+      failed_when: false
+
+    - name: Remove stale Docker socket and PID files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/run/docker.sock
+        - /var/run/docker.pid
+  when:
+    - remove_result is changed or install_result is changed
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.distribution_major_version == '22'
+
+- name: Clear systemd rate-limits and prepare containerd
+  block:
+    - name: Reset systemd failed state for Docker units
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        reset_failed: true
+      loop:
+        - docker.socket
+        - docker.service
+      failed_when: false
+
+    - name: Ensure containerd service is started and enabled
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.distribution_major_version == '22'
+
+- name: Start and enable Docker socket and daemon
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - docker.socket
+    - docker.service
+  when:
+    - ansible_facts.distribution == 'Ubuntu'
+    - ansible_facts.distribution_major_version == '22'
 
 - name: Create executor group
   become: yes
@@ -33,7 +102,7 @@
     name: "{{ executor_os_user }}"
     group: "{{ executor_os_group }}"
     groups: "{{ (container_command == 'docker') | ternary('docker', '', omit) }}"
-    state: "present"
+    state: present
 
 - name: Write Executor SystemD unit file
   become: true
@@ -47,7 +116,7 @@
   become: true
   ansible.builtin.file:
     dest: "{{ item.dest }}"
-    state: "directory"
+    state: directory
     owner: "{{ executor_os_user }}"
     group: "{{ executor_os_group }}"
     mode: "{{ item.mode | default(omit) }}"

@@ -1,0 +1,184 @@
+---
+# Main run playbook for the Kubernetes/pod-based cloudmon-deploy job.
+#
+# The whole CloudMon stack is deployed on a single `zuul-debian` pod
+# (no separate controller / worker split). Docker CE is installed
+# inline here because there is no verified global ensure-docker role.
+#
+# Docker is needed because cloudmon's graphite/statsd/postgres
+# provisioning playbooks deploy containerized components via
+# ansible-runner.
+#
+# NOTE: the pod has no systemd as PID 1, so the docker/containerd
+# daemons are started directly (background processes), not via the
+# service or systemd modules.
+- hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    docker_ce_packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+      register: prereq_result
+      retries: 5
+      until: prereq_result is success
+
+    # Add Docker CE apt repository
+    - name: Ensure /etc/apt/keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    # Pod environment: known zuul-debian pod (Debian bookworm, amd64).
+    # No ansible_facts available — hardcode values.
+    - name: Download Docker official GPG key
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/debian/gpg"
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker CE apt repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/docker-ce.list
+        mode: '0644'
+        content: >-
+          deb [arch=amd64
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/debian
+          bookworm stable
+
+    # Must refresh apt cache after adding the Docker CE repo, otherwise
+    # `apt` has no idea about the `docker-ce` packages.
+    - name: Update apt cache after adding Docker CE repository
+      ansible.builtin.apt:
+        update_cache: true
+
+    # Remove conflicting Docker packages that may be in the distro image
+    - name: Remove conflicting Docker packages
+      ansible.builtin.package:
+        state: absent
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+      failed_when: false
+
+    # Install Docker CE
+    - name: Install Docker CE packages
+      ansible.builtin.apt:
+        name: "{{ docker_ce_packages }}"
+        state: present
+      register: docker_install
+      retries: 5
+      until: docker_install is success
+
+    # Clean up stale sockets after package changes
+    - name: Remove stale Docker socket and PID files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/run/docker.sock
+        - /var/run/docker.pid
+      failed_when: false
+
+    # The node runs systemd as PID 1 (zuul-debian-systemd label), so let it own
+    # the daemons. Starting them by hand would collide with the units the
+    # cloudmon roles later enable. Daemon settings (MTU, cgroupdriver,
+    # iptables/bridge) are seeded into /etc/docker/daemon.json by the pod spec.
+    - name: Start containerd via systemd
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: Start dockerd via systemd
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Wait for Docker socket to appear (up to 60s)
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 60
+      register: docker_sock
+      ignore_errors: true
+
+    # Only runs when the socket never appeared. wait_for above is
+    # non-fatal so these diagnostics can be collected before failing;
+    # previously it aborted the play, so they never ran on failure, and
+    # the fail below had no condition, so it always ran on success.
+    - name: Diagnose why the docker daemon did not start
+      when: docker_sock is failed
+      block:
+        - name: Check if dockerd process exists
+          ansible.builtin.command:
+            cmd: pgrep -a dockerd
+          register: dockerd_ps
+          changed_when: false
+          failed_when: false
+
+        - name: Show dockerd log (last 100 lines)
+          ansible.builtin.command:
+            cmd: journalctl -u docker --no-pager -n 100
+          register: dockerd_tail
+          changed_when: false
+          failed_when: false
+
+        - name: Show containerd log (last 100 lines)
+          ansible.builtin.command:
+            cmd: journalctl -u containerd --no-pager -n 100
+          register: containerd_tail
+          changed_when: false
+          failed_when: false
+
+        - name: Fail with diagnostic context
+          ansible.builtin.fail:
+            msg: |-
+              Docker daemon failed to start after 60s.
+              dockerd process: {{ dockerd_ps.stdout_lines | default(['no process found']) }}
+              docker journal:
+              {{ dockerd_tail.stdout | default('no journal output') }}
+              containerd journal:
+              {{ containerd_tail.stdout | default('no journal output') }}
+
+- hosts: all
+  become: true
+  pre_tasks:
+    # The node image ships none of these: ansible.builtin.pip imports
+    # `packaging` on the target, and cloudmon_venv_path makes it build a
+    # venv, which needs the venv/virtualenv tooling.
+    - name: Install Python packaging and venv tooling
+      ansible.builtin.apt:
+        name:
+          - python3-packaging
+          - python3-pip
+          - python3-venv
+          - virtualenv
+        state: present
+      register: py_prereq
+      retries: 5
+      until: py_prereq is success
+  roles:
+    - install_cloudmon
+    - deploy_cloudmon_k8s

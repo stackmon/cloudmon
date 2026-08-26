@@ -1,0 +1,19 @@
+---
+# Pre-run playbook for the Kubernetes/pod-based cloudmon-deploy job.
+#
+# The `zuul-debian` eco2 pod runs as root but ships without `sudo`.
+# Any task that uses `become: true` will fail with "sudo: not found"
+# (exit 127) unless sudo is present. We install it via `raw` (no
+# interpreter dependency) since we are already root.
+#
+# Then we bootstrap python, pip and virtualenv via the OTC global
+# roles. Docker CE is installed in the main run play (see run.yaml).
+- hosts: all
+  pre_tasks:
+    - name: Ensure sudo is available
+      raw: command -v sudo >/dev/null 2>&1 || (apt-get update && apt-get install -y sudo)
+      changed_when: false
+  roles:
+    - ensure-python
+    - ensure-pip
+    - ensure-virtualenv

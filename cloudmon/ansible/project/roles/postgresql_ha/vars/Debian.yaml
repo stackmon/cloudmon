@@ -1,4 +1,6 @@
 ---
+remove_packages: []
+
 packages:
   - docker.io
   - python3-psycopg2
